@@ -1,0 +1,59 @@
+WorldGen: {
+	replaceALLLLL: Mods.BO.WorldGen.replaceALLLLL
+	clearALLLLL: Mods.BO.WorldGen.clearALLLLL
+	createBlackObstaclesPassMessage: Mods.BO.WorldGen.createBlackObstaclesPassMessage
+	createForestPassMessage: Mods.BO.WorldGen.createForestPassMessage
+}
+
+Items: {
+	black_obstacle: {
+		DisplayName: black_obstacle
+		Tooltip: ""
+	}
+
+	sun_maker_flower_seed: {
+		DisplayName: sun_maker_flower_seed
+		Tooltip: ""
+	}
+
+	test: {
+		DisplayName: test
+		Tooltip: ""
+	}
+
+	Living_Wooden_Sword: {
+		DisplayName: Living_ Wooden_ Sword
+		Tooltip: ""
+	}
+
+	Vine_Bow: {
+		DisplayName: Vine_ Bow
+		Tooltip: ""
+	}
+
+	Wand_Of_Sparking_Ammo: {
+		DisplayName: Wand_ Of_ Sparking_ Ammo
+		Tooltip: ""
+	}
+
+	Book_Of_Leaves: {
+		DisplayName: Book_ Of_ Leaves
+		Tooltip: ""
+	}
+}
+
+spearorlance: Mods.BO.spearorlance
+
+Projectiles: {
+	SpearProjectile.DisplayName: Spear Projectile
+	Wooden_Sword_p1.DisplayName: Wooden_ Sword_p1
+	Wooden_Sword_Projectile_Effect.DisplayName: Wooden_ Sword_ Projectile_ Effect
+	Living_Wooden_Sword_p1.DisplayName: Living_ Wooden_ Sword_p1
+	Living_Wooden_Sword_p2.DisplayName: Living_ Wooden_ Sword_p2
+	Vine_Bow_p1.DisplayName: Vine_ Bow_p1
+	Wand_Of_Sparking_Ammo_Projectile.DisplayName: Wand_ Of_ Sparking_ Ammo_ Projectile
+	Book_Of_Leaves_Crystal.DisplayName: Book_ Of_ Leaves_ Crystal
+}
+
+GrenadeToolTip: Mods.BO.GrenadeToolTip
+Create_Crystal: Mods.BO.Create_Crystal

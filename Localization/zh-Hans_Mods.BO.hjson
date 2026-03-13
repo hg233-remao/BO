@@ -1,0 +1,63 @@
+WorldGen: {
+	replaceALLLLL: 正在改变世界走向
+	clearALLLLL: 正在阻止邪恶入侵
+	createBlackObstaclesPassMessage: 正在构建黑障
+	createForestPassMessage: 正在生成森林
+}
+
+Items: {
+	black_obstacle: {
+		DisplayName: 黑障块
+		Tooltip: 你永久的阻碍
+	}
+
+	sun_maker_flower_seed: {
+		DisplayName: 映阳花种子
+		Tooltip: 在草地种植，生长成为映阳花
+	}
+
+	test: {
+		// DisplayName: test
+		// Tooltip: ""
+	}
+
+	Living_Wooden_Sword: {
+		DisplayName: 生命木剑
+		Tooltip: 掷出一根藤蔓后进行挥动攻击
+	}
+
+	Vine_Bow: {
+		DisplayName: 藤弦弓
+		Tooltip: 射击时偶尔会射出一片穿透敌人的绿叶
+	}
+
+	Wand_Of_Sparking_Ammo: {
+		// DisplayName: Wand_ Of_ Sparking_ Ammo
+		// Tooltip: ""
+	}
+
+	Book_Of_Leaves: {
+		DisplayName: 叶之书
+		Tooltip:
+			'''
+			这本书并没有书页，仅仅只是一片折起来的带有魔力的树皮
+			首次使用后学习树叶结界
+			'''
+	}
+}
+
+spearorlance: 矛/长枪
+
+Projectiles: {
+	// SpearProjectile.DisplayName: Spear Projectile
+	// Wooden_Sword_p1.DisplayName: Wooden_ Sword_p1
+	// Wooden_Sword_Projectile_Effect.DisplayName: Wooden_ Sword_ Projectile_ Effect
+	// Living_Wooden_Sword_p1.DisplayName: Living_ Wooden_ Sword_p1
+	// Living_Wooden_Sword_p2.DisplayName: Living_ Wooden_ Sword_p2
+	// Vine_Bow_p1.DisplayName: Vine_ Bow_p1
+	// Wand_Of_Sparking_Ammo_Projectile.DisplayName: Wand_ Of_ Sparking_ Ammo_ Projectile
+	// Book_Of_Leaves_Crystal.DisplayName: Book_ Of_ Leaves_ Crystal
+}
+
+GrenadeToolTip: 装备后使用远程伤害武器会使你掷出手榴弹
+Create_Crystal: 创建魔力水晶
