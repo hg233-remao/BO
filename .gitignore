@@ -14,3 +14,5 @@ obj/Debug/net8.0/BO.AssemblyInfo.cs
 /obj
 /obj
 /.vs
+*.dll
+*.dll

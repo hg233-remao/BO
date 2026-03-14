@@ -174,6 +174,10 @@ namespace BO.Content.Items.Magic.Magic_System
             {
                 Main.LocalPlayer.mouseInterface = true;
             }
+            if (Main.mouseX > Main.screenWidth * 0.45f - 95 && Main.mouseX < Main.screenWidth * 0.45f + 255 && Main.mouseY > 70 && Main.mouseY < 250 && Main.LocalPlayer.itemAnimation == 0)
+            {
+                Main.LocalPlayer.mouseInterface = true;
+            }
         }
         public override void LeftMouseDown(UIMouseEvent evt)
         {
@@ -237,21 +241,39 @@ namespace BO.Content.Items.Magic.Magic_System
     }
     public class Crystal_Adding_UI : UIElement
     {
-        Texture2D arrow;
-        Vector2 pu = new Vector2(Main.screenWidth * 0.45f + 92f, 76);
+        Texture2D arrow1,arrow2;
+        Vector2 su = new Vector2(Main.screenWidth * 0.45f + 92f, 76),xu = new Vector2(Main.screenWidth * 0.45f + 92f,211);
         public override void Draw(SpriteBatch spriteBatch)
         {
             //主要是绘制贴图和文本，左键交互什么的交给uistate处理，晚些时间再写，傻逼学校留了一堆笔记我还要补呢
             //哈哈，暑假过了一个多月我才再一次打开这个，妈的时间没有了，总之赶紧写吧
             //第一部分，翻页箭头绘制
-            arrow = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/arrow").Value;
-            spriteBatch.Draw(arrow, pu, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-            //绷不住了，这一行代码写完半年后我才回来继续写，早忘了要写的是什么了
+            arrow1 = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/arrow1").Value;
+            arrow2 = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/arrow2").Value;
+            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 70 && Main.mouseY < 115 && Main.LocalPlayer.itemAnimation == 0)
+            {
+                spriteBatch.Draw(arrow2, su, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                Main.LocalPlayer.mouseInterface = true;
+            }
+            else
+                spriteBatch.Draw(arrow1, su, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 205 && Main.mouseY < 250 && Main.LocalPlayer.itemAnimation == 0)
+            {
+                spriteBatch.Draw(arrow2, xu, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.FlipVertically, 0);
+                Main.LocalPlayer.mouseInterface = true;
+            }
+            else
+                spriteBatch.Draw(arrow1, xu, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.FlipVertically, 0);
+            //绷不住了，这一行代码写完半年后我才回来继续写，早忘了要写的是什么了,总之赶紧写
+
         }
         public override void Recalculate()
         {
-            if (Parent!=null)
-                pu.X = Main.screenWidth * 0.45f + 92f;
+            if (Parent != null)
+            {
+                su.X = Main.screenWidth * 0.45f + 92f;
+                xu.X = Main.screenWidth * 0.45f + 92f;
+            }  
             //base.Recalculate();
         }
         

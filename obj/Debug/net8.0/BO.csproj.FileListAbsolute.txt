@@ -10,3 +10,4 @@ C:\Users\s2690\Documents\My Games\Terraria\tModLoader\ModSources\BO\obj\Debug\ne
 C:\Users\s2690\Documents\My Games\Terraria\tModLoader\ModSources\BO\obj\Debug\net8.0\refint\BO.dll
 C:\Users\s2690\Documents\My Games\Terraria\tModLoader\ModSources\BO\obj\Debug\net8.0\BO.pdb
 C:\Users\s2690\Documents\My Games\Terraria\tModLoader\ModSources\BO\obj\Debug\net8.0\ref\BO.dll
+C:\Users\s2690\Documents\My Games\Terraria\tModLoader\ModSources\BO\obj\Debug\net8.0\BO.sourcelink.json
