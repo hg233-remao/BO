@@ -76,6 +76,7 @@ namespace BO.Content.Items.Magic.Magic_System
             Active_Slot_Index = 0;
         }
     }
+    //设置玩家相关的魔力方面的特性
     public class Magic_Slot_Sets : ModPlayer
     {
         public Magic_Slot_Template Magic_Slot = new Magic_Slot_Template();
@@ -83,17 +84,19 @@ namespace BO.Content.Items.Magic.Magic_System
         public bool Full_Entity_Power = false;
         public int Magic_Power_Cooldown = 0;
         public int Hold_Item_Before;
-        public bool[] Has_Learned_Magic = new bool[50];
+        public bool[] Has_Learned_Magic = new bool[50];  
         public override void OnHurt(Player.HurtInfo info)
         {
             Magic_Slot.Remove_An_Active();
         }
+        //检测玩家上一帧
         public override void PreUpdate()
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Hold_Item_Before = Player.HeldItem.type;
         }
     }
+    //魔法相关ui的那啥，对
     public class Magic_Slot_UI_System : ModSystem
     { 
         public UserInterface Magic_Slot_UI_UserInterface;
@@ -131,6 +134,7 @@ namespace BO.Content.Items.Magic.Magic_System
             }
         }
     }
+    //负责绘制魔力水晶构建界面的地方
     public class Magic_Slot_UIState : UIState
     {
         bool IsHide=true;
@@ -150,15 +154,15 @@ namespace BO.Content.Items.Magic.Magic_System
             back.Top.Set(70, 0f);
             back.Width.Set(225, 0f);
             back.Height.Set(180, 0f);
-            Append(back);
+            //Append(back);
             backu.Top.Set(70, 0f);
             backu.Width.Set(45, 0f);
             backu.Height.Set(45, 0f);
-            Append(backu);
+            //Append(backu);
             backd.Top.Set(205, 0f);
             backd.Width.Set(45, 0f);
             backd.Height.Set(45, 0f);
-            Append(backd);
+            //Append(backd);
         }
         public override void Update(GameTime gameTime)
         {
@@ -178,12 +182,18 @@ namespace BO.Content.Items.Magic.Magic_System
             {//若存在，则点击一次消失，否则反之，等我干完活回来就写的
                 if (IsHide)
                 {
+                    Append(back);
+                    Append(backu);
+                    Append(backd);
                     Append(Crystal_Adding_UI);
                     SoundEngine.PlaySound(SoundID.MenuOpen);
                     IsHide = false;
                 }
                 else
                 {
+                    RemoveChild(back);
+                    RemoveChild(backu);
+                    RemoveChild(backd);
                     RemoveChild(Crystal_Adding_UI);
                     SoundEngine.PlaySound(SoundID.MenuClose);
                     IsHide = true;
@@ -191,6 +201,7 @@ namespace BO.Content.Items.Magic.Magic_System
             }
         }
     }
+    //负责绘制魔力量和魔法构建按钮的地方
     public class Single_Slot_UI : UIElement
     {
         Vector2 vector2 = new Vector2(0, 25);
@@ -227,19 +238,28 @@ namespace BO.Content.Items.Magic.Magic_System
     public class Crystal_Adding_UI : UIElement
     {
         Texture2D arrow;
-        Vector2 pu = new Vector2(Main.screenWidth * 0.45f + 85f, 70);
+        Vector2 pu = new Vector2(Main.screenWidth * 0.45f + 92f, 76);
         public override void Draw(SpriteBatch spriteBatch)
         {
-            arrow = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/arrow").Value;
             //主要是绘制贴图和文本，左键交互什么的交给uistate处理，晚些时间再写，傻逼学校留了一堆笔记我还要补呢
             //哈哈，暑假过了一个多月我才再一次打开这个，妈的时间没有了，总之赶紧写吧
             //第一部分，翻页箭头绘制
+            arrow = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/arrow").Value;
             spriteBatch.Draw(arrow, pu, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+            //绷不住了，这一行代码写完半年后我才回来继续写，早忘了要写的是什么了
+        }
+        public override void Recalculate()
+        {
+            if (Parent!=null)
+                pu.X = Main.screenWidth * 0.45f + 92f;
+            //base.Recalculate();
         }
         
     }
+    //改变全物品的魔力机制，同时设定特定武器的可收集魔力量上限
     public class Magic_Weapon_Sets : GlobalItem
     {
+        //这里的Max_Magic_Ammo仅用来绘制界面，真正的控制逻辑我放在了各个法杖各自的源码里面
         public int Max_Magic_Ammo = 0;
         public override void SetDefaults(Item item)
         {

@@ -28,6 +28,7 @@ namespace  BO.Content.Items.Magic.Wands.Wand_Of_Sparking
             item.useAnimation = 80;
             item.UseSound = SoundID.Item74;
         }
+        //手持火花魔杖的时候进行的魔力充能生成逻辑
         public override void HoldItem(Item item, Player player)
         {
             if (item.type != ItemID.WandofSparking || player != Main.LocalPlayer) return;
@@ -36,7 +37,8 @@ namespace  BO.Content.Items.Magic.Wands.Wand_Of_Sparking
                 player.GetModPlayer<Magic_Slot_Sets>().Magic_Ammo = 0;
                 player.GetModPlayer<Magic_Slot_Sets>().Magic_Power_Cooldown = 600;
             }
-            if (player.GetModPlayer<Player_Has_Wand_Of_Sparking_Ammo_Projectile>().Has_Wand_Of_Sparking_Ammo_Projectile || (player.GetModPlayer<Magic_Slot_Sets>().Magic_Ammo > 0)) return;
+            if (player.GetModPlayer<Player_Has_Wand_Of_Sparking_Ammo_Projectile>().Has_Wand_Of_Sparking_Ammo_Projectile || (player.GetModPlayer<Magic_Slot_Sets>().Magic_Ammo > 0)) 
+                return;
             if (player.GetModPlayer<Magic_Slot_Sets>().Magic_Power_Cooldown > 0)
             {
                 player.GetModPlayer<Magic_Slot_Sets>().Magic_Power_Cooldown--;
@@ -46,7 +48,8 @@ namespace  BO.Content.Items.Magic.Wands.Wand_Of_Sparking
             UnifiedRandom r = new UnifiedRandom();
             a.X = r.NextFloat(-1, 1);
             a.Y = r.NextFloat(-2, 1);
-            if (!player.GetModPlayer<Magic_Slot_Sets>().Full_Entity_Power) Projectile.NewProjectile(player.GetSource_FromThis(), player.Center, a / a.Length() * 10f, ModContent.GetInstance<Wand_Of_Sparking_Ammo_Projectile>().Type, 0, 0);
+            if (!player.GetModPlayer<Magic_Slot_Sets>().Full_Entity_Power) 
+                Projectile.NewProjectile(player.GetSource_FromThis(), player.Center, a / a.Length() * 10f, ModContent.GetInstance<Wand_Of_Sparking_Ammo_Projectile>().Type, 0, 0);
         }
         public override bool CanUseItem(Item item, Player player)
         {
@@ -72,6 +75,7 @@ namespace  BO.Content.Items.Magic.Wands.Wand_Of_Sparking
             Item.CloneDefaults(ItemID.DirtBlock);
         }
     }
+    //“魔力聚合素”的行动逻辑
     public class Wand_Of_Sparking_Ammo_Projectile : ModProjectile
     {
         bool Transform = false;
@@ -105,8 +109,10 @@ namespace  BO.Content.Items.Magic.Wands.Wand_Of_Sparking
             if (Transform == true)
             {
                 Projectile.frame = (int)Main.time % 24 / 4;
-                if ((Projectile.Center - Main.player[Projectile.owner].Center).Length() > 50) Projectile.velocity = Vector2.Zero;
-                else Projectile.velocity = (Main.player[Projectile.owner].Center - Projectile.Center) / (Main.player[Projectile.owner].Center - Projectile.Center).Length() * 5f;
+                if ((Projectile.Center - Main.player[Projectile.owner].Center).Length() > 50) 
+                    Projectile.velocity = Vector2.Zero;
+                else 
+                    Projectile.velocity = (Main.player[Projectile.owner].Center - Projectile.Center) / (Main.player[Projectile.owner].Center - Projectile.Center).Length() * 5f;
                 Lighting.AddLight(Projectile.Center, c * 0.003f);
                 if ((Projectile.Center - Main.player[Projectile.owner].Center).Length() <= 20)
                 {
