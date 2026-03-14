@@ -16,13 +16,22 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
             Item.useTime = 180;
             Item.useAnimation = 100;
             Item.UseSound = new SoundStyle("BO/Content/Sounds/Book");
-            Item.shoot = ModContent.GetInstance<Book_Of_Leaves_Crystal>().Type;
+            //Item.shoot = ModContent.GetInstance<Book_Of_Leaves_Crystal>().Type;
         }
         public override bool? UseItem(Player player)
         {
             player.GetModPlayer<Magic_Slot_Sets>().Has_Learned_Magic[1] = true;
             return true;
         }
+    }
+    public class Book_Of_Leaves_Crystal_d : ModItem
+    {
+        public override void SetDefaults()
+        {
+            Item.damage = 3;
+            Item.DamageType = DamageClass.Magic;
+        }
+        public override string Texture => "BO/Content/Items/Magic/Spell_Books/Book_Of_Leaves/Book_Of_Leaves_Crystal_d";
     }
     public class Book_Of_Leaves_Crystal : ModProjectile
     {

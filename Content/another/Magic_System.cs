@@ -25,15 +25,24 @@ namespace BO.Content.Items.Magic.Magic_System
 {
     public class Magic_Slot_Template
     {
+        //这个玩家目前的魔力水晶栏位上限
         int Max_Slots_Count = 0;
+        //这个玩家目前用到的水晶的数量
         int Current_Slot_Count = 0;
+        //这个玩家目前用到的栏位的最后一个索引
         int Current_Slot_Index = 0;
+        //具有活力的水晶数量，估计用不上
         int Active_Slot_Count = 0;
+        //最后一个（最靠右边）的具有活力的水晶的栏位的索引
         int Active_Slot_Index = 0;
+        //一个被添加到栏位的水晶的结构体
         public struct Magic_Barrier_Crystal_In_Slots
         {
+            //水晶id
             public Crystal_ID Magic_Barrier_Crystal_Type;
+            //水晶占用空间
             public int Magic_Barrier_Crystal_Space;
+            //是否具有活力
             public bool Is_Active;
             public Magic_Barrier_Crystal_In_Slots()
             { 
@@ -42,35 +51,42 @@ namespace BO.Content.Items.Magic.Magic_System
                 Is_Active = false;
             }
         }
+        //允许玩家同时使用最多50个水晶，当然这个上限随便改，取决于mod之后的战力体系
         public Magic_Barrier_Crystal_In_Slots[] Magic_Slots = new Magic_Barrier_Crystal_In_Slots[50];
+        //添加一个水晶的方法
         public void Add_Crystal(int Adding_Type,int Adding_Space) 
         {
-            if (Current_Slot_Count < Max_Slots_Count && Adding_Space + Current_Slot_Count <= Max_Slots_Count)  
+            if (Adding_Space + Current_Slot_Count <= Max_Slots_Count)  
             {
                 Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Type += Adding_Type;
                 Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Space += Adding_Space;
-                Current_Slot_Index++;
+                Current_Slot_Index+=Adding_Space;
+                Current_Slot_Count++;
             }
         }
+        //移除一个水晶的方法
         public void Remove_Last_Crystal()
         {
             if (Current_Slot_Count > 0 && Max_Slots_Count > 0)
             {
-                Current_Slot_Count -= Magic_Slots[Current_Slot_Index].Magic_Barrier_Crystal_Space;
+                Current_Slot_Index -= Magic_Slots[Current_Slot_Index].Magic_Barrier_Crystal_Space;
                 Magic_Slots[Current_Slot_Index].Magic_Barrier_Crystal_Type = 0;
                 Magic_Slots[Current_Slot_Index].Magic_Barrier_Crystal_Space = 0;
-                Current_Slot_Index--;
+                Current_Slot_Count--;
             }
         }
+        //增加一个活力点
         public void Add_Active()
         {
             Active_Slot_Index++;
         }
+        //减少一个活力点
         public void Remove_An_Active()
         {
             if (Active_Slot_Index > 0) 
             Active_Slot_Index--;
         }
+        //移除所有活力点
         public void Remove_All_Active()
         {
             Active_Slot_Index = 0;
@@ -80,16 +96,23 @@ namespace BO.Content.Items.Magic.Magic_System
     public class Magic_Slot_Sets : ModPlayer
     {
         public Magic_Slot_Template Magic_Slot = new Magic_Slot_Template();
+        //法杖充能量
         public int Magic_Ammo = 0;
         public bool Full_Entity_Power = false;
+        //生成魔力聚合素的冷却
         public int Magic_Power_Cooldown = 0;
         public int Hold_Item_Before;
+        //用来存储玩家是否学习了某个水晶
         public bool[] Has_Learned_Magic = new bool[50];  
         public override void OnHurt(Player.HurtInfo info)
         {
             Magic_Slot.Remove_An_Active();
         }
-        //检测玩家上一帧
+        public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
+        {
+            Magic_Slot.Remove_All_Active();
+        }
+        //检测玩家上一帧所持物品
         public override void PreUpdate()
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;

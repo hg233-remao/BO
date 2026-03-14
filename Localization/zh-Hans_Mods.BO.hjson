@@ -44,6 +44,11 @@ Items: {
 			首次使用后学习树叶结界
 			'''
 	}
+
+	Book_Of_Leaves_Crystal_d: {
+		 DisplayName: 叶之水晶
+		 Tooltip: 处于活力状态时，使你被能够攻击敌人的魔法树叶环绕，最多三个
+	}
 }
 
 spearorlance: 矛/长枪

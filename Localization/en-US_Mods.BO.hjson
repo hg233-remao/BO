@@ -40,6 +40,11 @@ Items: {
 		DisplayName: Book_ Of_ Leaves
 		Tooltip: ""
 	}
+
+	Book_Of_Leaves_Crystal_d: {
+		DisplayName: Book_ Of_ Leaves_ Crystal_d
+		Tooltip: ""
+	}
 }
 
 spearorlance: Mods.BO.spearorlance

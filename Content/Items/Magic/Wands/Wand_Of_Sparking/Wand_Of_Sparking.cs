@@ -48,7 +48,7 @@ namespace  BO.Content.Items.Magic.Wands.Wand_Of_Sparking
             UnifiedRandom r = new UnifiedRandom();
             a.X = r.NextFloat(-1, 1);
             a.Y = r.NextFloat(-2, 1);
-            if (!player.GetModPlayer<Magic_Slot_Sets>().Full_Entity_Power) 
+            if (!player.GetModPlayer<Magic_Slot_Sets>().Full_Entity_Power)
                 Projectile.NewProjectile(player.GetSource_FromThis(), player.Center, a / a.Length() * 10f, ModContent.GetInstance<Wand_Of_Sparking_Ammo_Projectile>().Type, 0, 0);
         }
         public override bool CanUseItem(Item item, Player player)

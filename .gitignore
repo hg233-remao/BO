@@ -3,3 +3,6 @@
 /obj/Debug
 /obj/Debug/net8.0
 /obj
+/.vs
+.vs/BO/DesignTimeBuild/.dtbcache.v2
+/obj
