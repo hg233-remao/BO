@@ -1,10 +1,14 @@
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq.Expressions;
 using System.Reflection;
+using BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves;
 using BO.Content.Items.Magic.Wands.Wand_Of_Sparking;
 using Humanizer;
+using JetBrains.Annotations;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Steamworks;
 using Terraria;
 using Terraria.Audio;
 using Terraria.DataStructures;
@@ -15,16 +19,29 @@ using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.UI;
-public enum Crystal_ID
-{
-    None,
-    Book_Of_Leaves_Crystal
-}
-
 namespace BO.Content.Items.Magic.Magic_System
 {
+    public enum Crystal_ID
+    {
+        None,
+        Book_Of_Leaves_Crystal
+    }
     public class Magic_Slot_Template
     {
+        public static ModProjectile Crystal_Convert(int ID)
+        {
+            switch (ID)
+            {
+                case 0:
+                    return null;
+                    break;
+                case 1:
+                    return ModContent.GetInstance<Book_Of_Leaves_Crystal>();
+                    break;
+            }
+            return null;
+        }
+        public static readonly int[] Slot_num = { 0, 1 };
         //这个玩家目前的魔力水晶栏位上限
         int Max_Slots_Count = 0;
         //这个玩家目前用到的水晶的数量
@@ -45,7 +62,7 @@ namespace BO.Content.Items.Magic.Magic_System
             //是否具有活力
             public bool Is_Active;
             public Magic_Barrier_Crystal_In_Slots()
-            { 
+            {
                 Magic_Barrier_Crystal_Type = 0;
                 Magic_Barrier_Crystal_Space = 0;
                 Is_Active = false;
@@ -54,13 +71,13 @@ namespace BO.Content.Items.Magic.Magic_System
         //允许玩家同时使用最多50个水晶，当然这个上限随便改，取决于mod之后的战力体系
         public Magic_Barrier_Crystal_In_Slots[] Magic_Slots = new Magic_Barrier_Crystal_In_Slots[50];
         //添加一个水晶的方法
-        public void Add_Crystal(int Adding_Type,int Adding_Space) 
+        public void Add_Crystal(Crystal_ID Adding_Type, int Adding_Space)
         {
-            if (Adding_Space + Current_Slot_Count <= Max_Slots_Count)  
+            if (Adding_Space + Current_Slot_Count <= Max_Slots_Count)
             {
-                Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Type += Adding_Type;
-                Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Space += Adding_Space;
-                Current_Slot_Index+=Adding_Space;
+                Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Type = Adding_Type;
+                Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Space = Adding_Space;
+                Current_Slot_Index += Adding_Space;
                 Current_Slot_Count++;
             }
         }
@@ -75,21 +92,58 @@ namespace BO.Content.Items.Magic.Magic_System
                 Current_Slot_Count--;
             }
         }
-        //增加一个活力点
+        //增加一个活力点,同时判断能否激活水晶
         public void Add_Active()
         {
-            Active_Slot_Index++;
+            if (Active_Slot_Index < Get_All_Crystal_need())
+            {
+                Active_Slot_Index++;
+                Activate();
+            }
         }
         //减少一个活力点
         public void Remove_An_Active()
         {
-            if (Active_Slot_Index > 0) 
-            Active_Slot_Index--;
+            if (Active_Slot_Index > 0)
+                Active_Slot_Index--;
+            Activate();
         }
         //移除所有活力点
         public void Remove_All_Active()
         {
             Active_Slot_Index = 0;
+        }
+        //判断一次能激活哪些水晶并将满足条件的水晶激活
+        public void Activate()
+        {
+            int s_Active_Slot_Index = Active_Slot_Index;
+            for (int i = 0; s_Active_Slot_Index > Slot_num[(int)Magic_Slots[i].Magic_Barrier_Crystal_Type]; i++) 
+            {
+                if (s_Active_Slot_Index >= Slot_num[(int)Magic_Slots[i].Magic_Barrier_Crystal_Type])
+                {
+                    s_Active_Slot_Index -= Slot_num[(int)Magic_Slots[i].Magic_Barrier_Crystal_Type];
+                    Magic_Slots[i].Is_Active = true;
+                    Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Create_Crystal(Crystal_Convert((int)Magic_Slots[i].Magic_Barrier_Crystal_Type), i, Get_Active_Crystal_num());
+                }
+            }
+
+        }
+        //统计当前激活的水晶数量
+        public int Get_Active_Crystal_num()
+        {
+            int s = 0;
+            for (int i = 0; i < Magic_Slots.Length; i++)
+                if (Magic_Slots[i].Is_Active == true) 
+                    s++;
+            return s;
+        }
+        //统计当前所有水晶所需要的活力数量上限
+        public int Get_All_Crystal_need()
+        {
+            int s = 0;
+            for (int i = 0; i < Magic_Slots.Length; i++)
+                s += Magic_Slots[i].Magic_Barrier_Crystal_Space;
+            return s;
         }
     }
     //设置玩家相关的魔力方面的特性
@@ -103,13 +157,16 @@ namespace BO.Content.Items.Magic.Magic_System
         public int Magic_Power_Cooldown = 0;
         public int Hold_Item_Before;
         //用来存储玩家是否学习了某个水晶
-        public bool[] Has_Learned_Magic = new bool[50];  
+        public bool[] Has_Learned_Magic = new bool[50];
+        public int Magic_Active_Cooldown = 0;
         public override void OnHurt(Player.HurtInfo info)
         {
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Magic_Slot.Remove_An_Active();
         }
         public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
         {
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Magic_Slot.Remove_All_Active();
         }
         //检测玩家上一帧所持物品
@@ -117,6 +174,21 @@ namespace BO.Content.Items.Magic.Magic_System
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Hold_Item_Before = Player.HeldItem.type;
+        }
+        public override void PostUpdate()
+        {
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
+            Magic_Active_Cooldown -= 1;
+            if (Magic_Active_Cooldown == 0)
+            {
+                Magic_Active_Cooldown = 600;
+                Magic_Slot.Add_Active();
+            }
+        }
+        public void Create_Crystal(ModProjectile type,int index,int num)
+        {
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
+            Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type.Type, 0, 0, index, num + 1);
         }
     }
     //魔法相关ui的那啥，对
@@ -233,6 +305,7 @@ namespace BO.Content.Items.Magic.Magic_System
     {
         Vector2 vector2 = new Vector2(0, 25);
         Texture2D tex, Slot;
+        int Page = 1;
         public override void Draw(SpriteBatch spriteBatch)
         {
             vector2.X = Main.screenWidth * 0.45f;
@@ -288,8 +361,23 @@ namespace BO.Content.Items.Magic.Magic_System
             else
                 spriteBatch.Draw(arrow1, xu, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.FlipVertically, 0);
             //绷不住了，这一行代码写完半年后我才回来继续写，早忘了要写的是什么了,总之赶紧写
-
         }
+        //翻页按钮交互音效
+        public override void LeftMouseDown(UIMouseEvent evt)
+        {
+            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 70 && Main.mouseY < 115 && Main.LocalPlayer.itemAnimation == 0)
+                SoundEngine.PlaySound(SoundID.MenuOpen);
+            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 205 && Main.mouseY < 250 && Main.LocalPlayer.itemAnimation == 0)
+                SoundEngine.PlaySound(SoundID.MenuOpen);
+        }
+        //交互区域设置
+        public override bool ContainsPoint(Vector2 point)
+        {
+            if (Main.mouseX > Main.screenWidth * 0.45f - 95f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY < 250 && Main.mouseY > 70)
+                return true;
+            return false;
+        }
+        //重置ui横坐标防止错位
         public override void Recalculate()
         {
             if (Parent != null)

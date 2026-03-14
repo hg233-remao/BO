@@ -35,8 +35,8 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
     }
     public class Book_Of_Leaves_Crystal : ModProjectile
     {
-        Vector2 a;
-        float Angle = 0;
+        int projectile_slot_index;
+        //void 
         public override void SetDefaults()
         {
             Projectile.netImportant = true;
@@ -46,11 +46,6 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
         }
         public override void AI()
         {
-            Projectile.timeLeft += 2;
-            if (Angle >= 360) Angle = 0;
-            Angle++;
-            a = new Vector2(Main.player[Projectile.owner].Center.X + (float)Math.Cos(MathHelper.ToRadians(Angle)) * 40, Main.player[Projectile.owner].Center.Y + (float)Math.Sin(MathHelper.ToRadians(Angle)) * 40);
-            Projectile.Center = a;
         }
     }
 }
