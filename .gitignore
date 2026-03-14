@@ -10,3 +10,7 @@ Thumbs.db
 *bak
 *.tmp
 *~
+obj/Debug/net8.0/BO.AssemblyInfo.cs
+/obj
+/obj
+/.vs
