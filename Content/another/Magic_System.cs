@@ -202,10 +202,18 @@ namespace BO.Content.Items.Magic.Magic_System
                 Magic_Slot.Add_Active();
             }
         }
+        //生成一个水晶
         public void Create_Crystal(ModProjectile type,int index,int num)
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type.Type, 0, 0, index, num + 1);
+        }
+        //清空ui状态
+        public override void OnEnterWorld()
+        {
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
+            //我咋感觉这样不大行。。。试了试还真行
+            ModContent.GetInstance<Magic_Slot_UI_System>().a.Clear_Learned_Crystal();
         }
     }
     //魔法相关ui的那啥，对
@@ -262,6 +270,10 @@ namespace BO.Content.Items.Magic.Magic_System
         UIPanel backu = new UIPanel();
         UIPanel backd = new UIPanel();
         UIPanel[] Nine_Crystal_Panel = new UIPanel[9];
+        public void Clear_Learned_Crystal()
+        {
+            Crystal_Adding_UI.Clear();
+        }
         public override void OnInitialize()
         {
             if (Main.netMode == NetmodeID.Server) return;
@@ -531,6 +543,13 @@ namespace BO.Content.Items.Magic.Magic_System
                     Available_Crystal[b / 9, b % 9] = new Item(Magic_Slot_Template.Crystal_Convert_Item(a));
                     b++;
                 }
+        }
+        //清空二维数组，防止本地玩家ui状态混淆
+        public void Clear()
+        {
+            for (int i = 0; i < 6; i++)
+                for (int j = 0; j < 9; j++)
+                    Available_Crystal[i, j] = null;
         }
     }
     //改变全物品的魔力机制，同时设定特定武器的可收集魔力量上限
