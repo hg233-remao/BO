@@ -22,6 +22,7 @@ using Terraria.GameContent.RGB;
 using System.Net.Mail;
 using BO.Content.Items.Swords.Living_Wooden_sword;
 using Terraria.Audio;
+using ReLogic.Content;
 namespace BO.Content.another.spearglobalsets
 {
     public class spearglobalsets : GlobalItem
@@ -113,12 +114,17 @@ namespace BO.Content.another.spearglobalsets
     {
         //ªÊ÷∆√¨ŒÔ∆∑≤€Ã˘Õº
         Vector2 vector2 = new Vector2(595, 212);
-        Texture2D tex;
+        Asset<Texture2D> tex = null;
+        public override void OnInitialize()
+        {
+            Main.instance.LoadItem(Main.LocalPlayer.GetModPlayer<setspearslot>().spearslot[0].Clone().type);
+        }
         public override void Draw(SpriteBatch spriteBatch)
         {
+            if (Main.LocalPlayer == null) return;
             base.Draw(spriteBatch);
-            tex = (Texture2D)TextureAssets.Item[Main.LocalPlayer.GetModPlayer<setspearslot>().spearslot[0].type];
-            spriteBatch.Draw(tex, vector2, null, Color.White, 0, tex.Size() * 0.5f, 1, SpriteEffects.None, 0);
+            tex = TextureAssets.Item[Main.LocalPlayer.GetModPlayer<setspearslot>().spearslot[0].type];
+            spriteBatch.Draw(tex.Value, vector2, null, Color.White, 0, tex.Size() * 0.5f, 1, SpriteEffects.None, 0);
             if (Main.mouseX >= 570 && Main.mouseX <= 620 && Main.mouseY >= 187 && Main.mouseY <= 237 && Main.LocalPlayer.itemAnimation == 0)
             {
                 Main.HoverItem = Main.LocalPlayer.GetModPlayer<setspearslot>().spearslot[0].Clone();
@@ -191,7 +197,7 @@ namespace BO.Content.another.spearglobalsets
             if (Main.netMode == NetmodeID.Server) return;
             if (Main.netMode != NetmodeID.Server) MyInterface = new UserInterface();
             s = new spearslotui();
-            //s.Activate();
+            s.Activate();
             MyInterface.SetState(s);
             spearorlance = Mod.GetLocalization(nameof(spearorlance));
         }

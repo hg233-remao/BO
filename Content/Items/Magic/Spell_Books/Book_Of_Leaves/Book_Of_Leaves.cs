@@ -30,6 +30,7 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
         {
             Item.damage = 3;
             Item.DamageType = DamageClass.Magic;
+            //Item.tooltipContext.
         }
         public override string Texture => "BO/Content/Items/Magic/Spell_Books/Book_Of_Leaves/Book_Of_Leaves_Crystal_d";
     }

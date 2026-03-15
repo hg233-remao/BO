@@ -61,11 +61,13 @@ namespace BO.Content.Items.Swords.Living_Wooden_sword
         }
         public override void AI()
         {
+            if (Main.player[Projectile.owner]==null)Projectile.Kill();
             if (back)
             {
                 Projectile.timeLeft = 30;
                 Projectile.velocity = (Main.player[Projectile.owner].Center - Projectile.Center) / (Main.player[Projectile.owner].Center - Projectile.Center).Length() * 12f;
-                if ((Main.player[Projectile.owner].Center - Projectile.Center).Length() <= 20 || Main.player[Projectile.owner].dead) Projectile.Kill();
+                if ((Main.player[Projectile.owner].Center - Projectile.Center).Length() <= 20 || Main.player[Projectile.owner].dead) 
+                    Projectile.Kill();
                 return;
             }
             if (targetn != null && !Main.npc[(int)targetn].active || Projectile.timeLeft <= 15)
