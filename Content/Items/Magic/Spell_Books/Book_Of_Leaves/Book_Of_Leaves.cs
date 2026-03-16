@@ -35,21 +35,26 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
         }
         public override string Texture => "BO/Content/Items/Magic/Spell_Books/Book_Of_Leaves/Book_Of_Leaves_Crystal_d";
     }
-    public class Book_Of_Leaves_Crystal : ModProjectile
+    public class Book_Of_Leaves_Crystal : Crystal_Projectile
     {
         public override void SetDefaults()
         {
+            Projectile.aiStyle = -1;
             Projectile.netImportant = true;
             Projectile.width = 10;
             Projectile.height = 18;
             Projectile.timeLeft = 60;
+            Projectile.tileCollide = false;
+            Projectile.penetrate = 1;
         }
         public override void AI()
         {
             Projectile.timeLeft = 60;
-            Projectile.position.X = Main.player[Projectile.owner].Center.X + (float)Math.Cos(Magic_Slot_Sets.Crystal_Angle);
-            Projectile.position.Y = Main.player[Projectile.owner].Center.Y;
-            Main.NewText("i m here");
+            Projectile.position.X = Main.player[Projectile.owner].Center.X + (float)Math.Cos(Magic_Slot_Sets.Crystal_Angle * Math.PI / 180) * 40f;
+            Projectile.position.Y = Main.player[Projectile.owner].Center.Y + (float)Math.Sin(Magic_Slot_Sets.Crystal_Angle * Math.PI / 180) * 40f;
+        }
+        public override void OnKill(int timeLeft)
+        {
         }
     }
 }

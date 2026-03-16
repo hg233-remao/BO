@@ -24,173 +24,210 @@ using Terraria.ModLoader;
 using Terraria.UI;
 namespace BO.Content.Items.Magic.Magic_System
 {
-    public enum Crystal_ID
-    {
-        None,
-        Book_Of_Leaves_Crystal
-    }
     public class Magic_Slot_Template
     {
-        //ID转化射弹
-        public static ModProjectile Crystal_Convert_Projecile(int ID)
+        //一个槽的结构体
+        public class Magic_Barrier_Crystal_In_Slots
         {
-            switch (ID)
-            {
-                case 0:
-                    return null;
-                case 1:
-                    return ModContent.GetInstance<Book_Of_Leaves_Crystal>();
+            //该槽的水晶type
+            public int Magic_Barrier_Crystal_Type = 0;
+            //当前活力值
+            public int Active_Power = 0;
+            //这个水晶的活力值上限
+            public int Internal_Max_Active = 0;
+            //这个水晶在所有水晶中的排序，按照先后顺序来，主要用来绘制水晶旋转时的角度不乱转，和槽的序列一致
+            public int Order = 0;
+            //这个槽绑定的水晶的索引
+            public int? Projectile_Index = null;
+            //初始化时告诉这个槽它的顺序
+            public Magic_Barrier_Crystal_In_Slots(int order)
+            { 
+                Order = order;
             }
-            return null;
-        }
-        //ID转化物品
-        public static int Crystal_Convert_Item(int ID)
-        {
-            switch (ID)
-            {
-                case 0:
-                    return 0;
-                case 1:
-                    return ModContent.ItemType<Book_Of_Leaves_Crystal_d>();
+            //检测一次自身状态，一般在自己的活力值改变时使用，因此我将改变水晶活力值的地方集成在这个方法上了
+            public void Check_state(int active,int Crystal_Num)
+            { 
+                Active_Power += active;
+                if (Magic_Barrier_Crystal_Type != 0)
+                {
+                    //气死我了，写到这里发现要多人同步的话还得写个水晶弹幕的基类
+                    Crystal_Projectile Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
+                    Crystal_Projectile_C.Sync(Crystal_Num, Active_Power);
+                }
+                else
+                {
+                    Main.projectile[(int)Projectile_Index].Kill();
+                    Projectile_Index = null;
+                }
             }
-            return 0;
-        }
-        //ID查询占用空间
-        public static int Crystal_Whose_Space(int ID)
-        {
-            switch (ID)
+            //为这个槽设置一个水晶，并根据给予活力值刷新一次
+            //创建水晶的射弹时最后三个参数告诉射弹槽序列目前水晶数量这个槽的活力值
+            public void Set_Crystal(int type,int active,int Crystal_Num)
             {
-                case 0:
-                    return 0;
-                case 1:
-                    return 1;
+                Magic_Barrier_Crystal_Type = type;
+                Internal_Max_Active = Crystal_Whose_Space(type);
+                if (Magic_Barrier_Crystal_Type != 0)
+                {
+                    Projectile_Index = Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type, 1, 1, Main.myPlayer, Order, Crystal_Num, Active_Power);
+                }
+                if (active <= Internal_Max_Active)
+                    Check_state(active, Crystal_Num);
+                else
+                    Check_state(Internal_Max_Active, Crystal_Num);
             }
-            return 0;
-        }
-        //物品转化ID
-        public static int Item_Type_To_Crystal_ID(Item item)
-        {
-            if (item.type == ItemID.None)
-                return 0;
-            if (item.type == ModContent.ItemType<Book_Of_Leaves_Crystal_d>()) 
-                return 1;
-            return 0;
-        }
-        public static readonly int[] Slot_num = { 0, 1 };
-        //这个玩家目前的魔力水晶栏位上限(索引)
-        public int Max_Slots_Count = 0;
-        //这个玩家目前用到的水晶的数量
-        int Current_Slot_Count = 0;
-        //这个玩家目前用到的栏位的最后一个索引
-        int Current_Slot_Index = 0;
-        //具有活力的水晶数量，估计用不上
-        int Active_Slot_Count = 0;
-        //最后一个（最靠右边）的具有活力的水晶的栏位的索引
-        int Active_Slot_Index = 0;
-        //一个被添加到栏位的水晶的结构体
-        public struct Magic_Barrier_Crystal_In_Slots
-        {
-            //水晶id
-            public Crystal_ID Magic_Barrier_Crystal_Type;
-            //水晶占用空间
-            public int Magic_Barrier_Crystal_Space;
-            //是否具有活力
-            public bool Is_Active;
-            public Magic_Barrier_Crystal_In_Slots()
+            public void Clear_Crystal(int Crystal_Num)
             {
                 Magic_Barrier_Crystal_Type = 0;
-                Magic_Barrier_Crystal_Space = 0;
-                Is_Active = false;
+                Internal_Max_Active = Crystal_Whose_Space(0);
+                Check_state(-Active_Power, Crystal_Num);
             }
         }
         //允许玩家同时使用最多54个水晶，当然这个上限随便改，取决于mod之后的战力体系
         public Magic_Barrier_Crystal_In_Slots[] Magic_Slots = new Magic_Barrier_Crystal_In_Slots[54];
+        //初始化54个水晶槽
         public Magic_Slot_Template()
         {
             for (int i = 0; i < Magic_Slots.Length; i++)
             {
-                Magic_Slots[i] = new Magic_Barrier_Crystal_In_Slots();
+                Magic_Slots[i] = new Magic_Barrier_Crystal_In_Slots(i);
             }
         }
-        //添加一个水晶的方法
-        public void Add_Crystal(Crystal_ID Adding_Type)
+        //物品type转化射弹type
+        public static int Crystal_Convert_Projecile(int type)
         {
-            if (Crystal_Whose_Space((int)Adding_Type) + Current_Slot_Count <= Max_Slots_Count)
-            {
-                Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Type = Adding_Type;
-                Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Space = Crystal_Whose_Space((int)Adding_Type);
-                Current_Slot_Index += Crystal_Whose_Space((int)Adding_Type);
-                Current_Slot_Count++;
-            }
+            if (type == ItemID.None)
+                return 0;
+            if (type == ModContent.ItemType<Book_Of_Leaves_Crystal_d>())
+                return ModContent.ProjectileType<Book_Of_Leaves_Crystal>();
+            return 0;
         }
-        //移除一个水晶的方法
-        public void Remove_Last_Crystal()
+        //射弹type查询占用空间
+        public static int Crystal_Whose_Space(int type)
         {
-            if (Current_Slot_Count > 0 && Max_Slots_Count > 0)
-            {
-                Current_Slot_Index -= Magic_Slots[Current_Slot_Index].Magic_Barrier_Crystal_Space;
-                Magic_Slots[Current_Slot_Index].Magic_Barrier_Crystal_Type = 0;
-                Magic_Slots[Current_Slot_Index].Magic_Barrier_Crystal_Space = 0;
-                Current_Slot_Count--;
-            }
+            if (type == ProjectileID.None)
+                return 0;
+            if (type == ModContent.ProjectileType<Book_Of_Leaves_Crystal>())
+                return 1;
+            return 0;
         }
-        //增加一个活力点,同时判断能否激活水晶
+        //这里太乱了导致我写代码经常搞糊涂自己，因此，全部重写！
+        //首先澄清几个定义吧
+        //活力值，每个水晶都有自己的最大活力值，活力值不同，效果也就不同
+        //在游戏里面以栏位的形式体现，一个可以使用的活力值等于一个栏位，同时剩余栏位不足以到达一个水晶的最大活力值时这个水晶无法被创建
+        //玩家当前的活力值上限，默认为一吧
+        public int Max_Active = 1;
+        //玩家当前的活力值
+        public int Active = 0;
+        //呃然后好像不需要写别的变量了？？？那就写一写那些烦人的方法吧
+        //检查目前水晶使用着多少活力值
+        public int Using_Active()
+        {
+            int s = 0;
+            for (int i = 0; i < Magic_Slots.Length; i++) 
+            {
+                s += Magic_Slots[i].Active_Power;
+            }
+            return s;
+        }
+        //检查目前占用了多少栏位
+        public int Max_Using_Active()
+        {
+            int s = 0;
+            for (int i = 0; i < Magic_Slots.Length; i++)
+            {
+                s += Magic_Slots[i].Internal_Max_Active;
+            }
+            return s;
+        }
+        //检查目前有多少水晶
+        public int Crystal_Num()
+        {
+            int s = 0;
+            for (int i = 0; i < Magic_Slots.Length; i++)
+            {
+                if (Magic_Slots[i].Magic_Barrier_Crystal_Type != 0)
+                    s++;
+            }
+            return s;
+        }
+        //增加一点活力值
         public void Add_Active()
         {
-            if (Active_Slot_Index < Get_All_Crystal_need())
+            if (Active < Max_Active)
             {
-                Active_Slot_Index++;
-                Activate();
+                if (Using_Active() < Max_Using_Active())
+                {
+                    for (int i = 0; i < Magic_Slots.Length; i++)
+                    {
+                        if (Magic_Slots[i].Active_Power < Magic_Slots[i].Internal_Max_Active)
+                        {
+                            Magic_Slots[i].Check_state(1, Crystal_Num());
+                        }
+                    }
+                }
+                Active++;
             }
         }
-        //减少一个活力点
-        public void Remove_An_Active()
+        //减少一点活力值
+        public void Remove_Active()
         {
-            if (Active_Slot_Index > 0)
-                Active_Slot_Index--;
-            Activate();
+            if (Active > 0) 
+            {
+                if (Using_Active() > 0) 
+                {
+                    for (int i = 0; i < Magic_Slots.Length; i++)
+                    {
+                        if (Magic_Slots[i].Active_Power > 0)
+                        {
+                            Magic_Slots[i].Check_state(-1, Crystal_Num());
+                        }
+                        else
+                        {
+                            Magic_Slots[i - 1].Check_state(-1, Crystal_Num());
+                        }
+                    }
+                }
+                Active--;
+            }
         }
-        //移除所有活力点
+        //减少全部活力值
         public void Remove_All_Active()
         {
-            Active_Slot_Index = 0;
+            for (int i = Active; i > 0; i--)
+                Remove_Active();
         }
-        //判断一次能激活哪些水晶并将满足条件的水晶激活
-        public void Activate()
+        //在最右侧槽设置一个水晶
+        public void Set_Crystal(int type)
         {
-            int s_Active_Slot_Index = Active_Slot_Index;
-            for (int i = 0; s_Active_Slot_Index > Slot_num[(int)Magic_Slots[i].Magic_Barrier_Crystal_Type]; i++) 
-            {
-                if (s_Active_Slot_Index >= Slot_num[(int)Magic_Slots[i].Magic_Barrier_Crystal_Type])
+            type = Crystal_Convert_Projecile(type);
+            if (Max_Using_Active() + Crystal_Whose_Space(type) <= Max_Active)
+                for (int i = 0; i < Magic_Slots.Length; i++)
                 {
-                    s_Active_Slot_Index -= Slot_num[(int)Magic_Slots[i].Magic_Barrier_Crystal_Type];
-                    Magic_Slots[i].Is_Active = true;
-                    Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Create_Crystal(((int)Magic_Slots[i].Magic_Barrier_Crystal_Type), Get_Active_Crystal_num());
+                    if (Magic_Slots[i].Magic_Barrier_Crystal_Type == 0)
+                    {
+                        Magic_Slots[i].Set_Crystal(type, Max_Active - Active, Crystal_Num());
+                    }
                 }
-            }
         }
-        //统计当前激活的水晶数量
-        public int Get_Active_Crystal_num()
+        //在最右侧删除一个水晶
+        public void Clear_Crystal()
         {
-            int s = 0;
-            for (int i = 0; i < Magic_Slots.Length; i++)
-                if (Magic_Slots[i].Is_Active == true) 
-                    s++;
-            return s;
-        }
-        //统计当前所有水晶所需要的活力数量上限
-        public int Get_All_Crystal_need()
-        {
-            int s = 0;
-            for (int i = 0; i < Magic_Slots.Length; i++)
-                s += Magic_Slots[i].Magic_Barrier_Crystal_Space;
-            return s;
+            if (Magic_Slots[0].Magic_Barrier_Crystal_Type != 0) 
+                for (int i = 0; i < Magic_Slots.Length; i++)
+                {
+                    if (Magic_Slots[i].Magic_Barrier_Crystal_Type == 0)
+                    {
+                        Magic_Slots[i - 1].Clear_Crystal(Crystal_Num());
+                    }
+                }
         }
     }
     //设置玩家相关的魔力方面的特性
     public class Magic_Slot_Sets : ModPlayer
     {
+        //用来调整所有水晶的角度
         public static int Crystal_Angle = 0;
+        //一个魔法栏位的实例
         public Magic_Slot_Template Magic_Slot = new Magic_Slot_Template();
         //法杖充能量
         public int Magic_Ammo = 0;
@@ -200,14 +237,28 @@ namespace BO.Content.Items.Magic.Magic_System
         public int Hold_Item_Before;
         //用来存储玩家是否学习了某个水晶
         public bool[] Has_Learned_Magic = new bool[54];
+        //默认的活力值提升速度
         public int Active_Add_Per_Frame = 100;
+        //当前冷却充能
         public int Current_Cooldown = 0;
+        //充能上限
         public const int Max_Cooldown = 60000;
+        //将学习水晶的数组序列与水晶介绍物品的type映射起来
+        public static int Index_To_Crystal_Item_Type(int Index)
+        {
+            if (Index == 0)
+                return 0;
+            if (Index == 1)
+                return ModContent.ItemType<Book_Of_Leaves_Crystal_d>();
+            return 0;
+        }
+        //受伤时减少一点活力值
         public override void OnHurt(Player.HurtInfo info)
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
-            Magic_Slot.Remove_An_Active();
+            Magic_Slot.Remove_Active();
         }
+        //死掉时移除所有活力值
         public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
@@ -238,24 +289,18 @@ namespace BO.Content.Items.Magic.Magic_System
         //装备加成重置
         public override void ResetEffects()
         {
-            Magic_Slot.Max_Slots_Count = 1;
+            Magic_Slot.Max_Active = 1;
             Active_Add_Per_Frame = 100;
         }
-        //对水晶栏位索引的影响
+        //对活力值上限的影响
         public void Max_Slots_Addition(int Addition)
         {
-            Magic_Slot.Max_Slots_Count = 1 + Addition;
+            Magic_Slot.Max_Active = 1 + Addition;
         }
         //对cd恢复速率的影响，单位1%
         public void Cooldown_Addition(int Addition)
         {
             Active_Add_Per_Frame = 100 + 100 * Addition;
-        }
-        //生成一个水晶
-        public void Create_Crystal(int type, int num)
-        {
-            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server || Main.LocalPlayer == null) return;
-            Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type, 0, 0, Main.myPlayer, num);
         }
         //清空ui状态
         public override void OnEnterWorld()
@@ -267,7 +312,7 @@ namespace BO.Content.Items.Magic.Magic_System
         //添加一个水晶，即要使用的水晶
         public void Add_Crystal(int ID)
         {
-            Magic_Slot.Add_Crystal((Crystal_ID)ID);
+            Magic_Slot.Set_Crystal(ID);
         }
     }
     //魔法相关ui的那啥，对
@@ -584,7 +629,7 @@ namespace BO.Content.Items.Magic.Magic_System
         {
             if (Main.mouseX > L && Main.mouseX < L + 44 && Main.mouseY > U && Main.mouseY < U + 44 && Main.LocalPlayer.itemAnimation == 0 && Available_Crystal[Page, Index] != null) 
             {
-                Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Add_Crystal(Magic_Slot_Template.Item_Type_To_Crystal_ID(Available_Crystal[Page, Index].Clone()));
+                Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Add_Crystal(Available_Crystal[Page, Index].type);
                 //Main.NewText("添加索引" + Index);
             }
         }
@@ -613,7 +658,7 @@ namespace BO.Content.Items.Magic.Magic_System
             for (; a < 54; a++)
                 if (Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Has_Learned_Magic[a] == true)
                 {
-                    Available_Crystal[b / 9, b % 9] = new Item(Magic_Slot_Template.Crystal_Convert_Item(a));
+                    Available_Crystal[b / 9, b % 9] = new Item(Magic_Slot_Sets.Index_To_Crystal_Item_Type(a));
                     b++;
                 }
         }
@@ -651,6 +696,16 @@ namespace BO.Content.Items.Magic.Magic_System
                 drawText = false;
                 return false;
             }
+        }
+    }
+    //便于进行多人同步的水晶弹幕基类，以后写水晶弹幕必须继承这个，否则魔力系统绝对会报错，还有就是这里还得多写点多人同步的代码
+    public abstract class Crystal_Projectile : ModProjectile
+    {
+        int Crystal_num = 0, Active_Power = 0;
+        public void Sync(int Crystal_num_S, int Active_Power_S)
+        {
+            Crystal_num = Crystal_num_S;
+            Active_Power = Active_Power_S;
         }
     }
 }
