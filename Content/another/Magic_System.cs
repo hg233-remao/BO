@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq.Expressions;
@@ -37,10 +38,8 @@ namespace BO.Content.Items.Magic.Magic_System
             {
                 case 0:
                     return null;
-                    break;
                 case 1:
                     return ModContent.GetInstance<Book_Of_Leaves_Crystal>();
-                    break;
             }
             return null;
         }
@@ -51,16 +50,35 @@ namespace BO.Content.Items.Magic.Magic_System
             {
                 case 0:
                     return 0;
-                    break;
                 case 1:
                     return ModContent.ItemType<Book_Of_Leaves_Crystal_d>();
-                    break;
             }
             return 0;
         }
+        //ID查询占用空间
+        public static int Crystal_Whose_Space(int ID)
+        {
+            switch (ID)
+            {
+                case 0:
+                    return 0;
+                case 1:
+                    return 1;
+            }
+            return 0;
+        }
+        //物品转化ID
+        public static int Item_Type_To_Crystal_ID(Item item)
+        {
+            if (item.type == ItemID.None)
+                return 0;
+            if (item.type == ModContent.ItemType<Book_Of_Leaves_Crystal_d>()) 
+                return 1;
+            return 0;
+        }
         public static readonly int[] Slot_num = { 0, 1 };
-        //这个玩家目前的魔力水晶栏位上限
-        int Max_Slots_Count = 0;
+        //这个玩家目前的魔力水晶栏位上限(索引)
+        public int Max_Slots_Count = 0;
         //这个玩家目前用到的水晶的数量
         int Current_Slot_Count = 0;
         //这个玩家目前用到的栏位的最后一个索引
@@ -87,14 +105,21 @@ namespace BO.Content.Items.Magic.Magic_System
         }
         //允许玩家同时使用最多54个水晶，当然这个上限随便改，取决于mod之后的战力体系
         public Magic_Barrier_Crystal_In_Slots[] Magic_Slots = new Magic_Barrier_Crystal_In_Slots[54];
-        //添加一个水晶的方法
-        public void Add_Crystal(Crystal_ID Adding_Type, int Adding_Space)
+        public Magic_Slot_Template()
         {
-            if (Adding_Space + Current_Slot_Count <= Max_Slots_Count)
+            for (int i = 0; i < Magic_Slots.Length; i++)
+            {
+                Magic_Slots[i] = new Magic_Barrier_Crystal_In_Slots();
+            }
+        }
+        //添加一个水晶的方法
+        public void Add_Crystal(Crystal_ID Adding_Type)
+        {
+            if (Crystal_Whose_Space((int)Adding_Type) + Current_Slot_Count <= Max_Slots_Count)
             {
                 Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Type = Adding_Type;
-                Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Space = Adding_Space;
-                Current_Slot_Index += Adding_Space;
+                Magic_Slots[Current_Slot_Index + 1].Magic_Barrier_Crystal_Space = Crystal_Whose_Space((int)Adding_Type);
+                Current_Slot_Index += Crystal_Whose_Space((int)Adding_Type);
                 Current_Slot_Count++;
             }
         }
@@ -140,10 +165,9 @@ namespace BO.Content.Items.Magic.Magic_System
                 {
                     s_Active_Slot_Index -= Slot_num[(int)Magic_Slots[i].Magic_Barrier_Crystal_Type];
                     Magic_Slots[i].Is_Active = true;
-                    Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Create_Crystal(Crystal_Convert_Projecile((int)Magic_Slots[i].Magic_Barrier_Crystal_Type), i, Get_Active_Crystal_num());
+                    Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Create_Crystal(((int)Magic_Slots[i].Magic_Barrier_Crystal_Type), Get_Active_Crystal_num());
                 }
             }
-
         }
         //统计当前激活的水晶数量
         public int Get_Active_Crystal_num()
@@ -166,6 +190,7 @@ namespace BO.Content.Items.Magic.Magic_System
     //设置玩家相关的魔力方面的特性
     public class Magic_Slot_Sets : ModPlayer
     {
+        public static int Crystal_Angle = 0;
         public Magic_Slot_Template Magic_Slot = new Magic_Slot_Template();
         //法杖充能量
         public int Magic_Ammo = 0;
@@ -175,7 +200,9 @@ namespace BO.Content.Items.Magic.Magic_System
         public int Hold_Item_Before;
         //用来存储玩家是否学习了某个水晶
         public bool[] Has_Learned_Magic = new bool[54];
-        public int Magic_Active_Cooldown = 0;
+        public int Active_Add_Per_Frame = 100;
+        public int Current_Cooldown = 0;
+        public const int Max_Cooldown = 60000;
         public override void OnHurt(Player.HurtInfo info)
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
@@ -186,27 +213,49 @@ namespace BO.Content.Items.Magic.Magic_System
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Magic_Slot.Remove_All_Active();
         }
-        //检测玩家上一帧所持物品
+        //检测玩家上一帧所持物品,以及水晶转动角度
         public override void PreUpdate()
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Hold_Item_Before = Player.HeldItem.type;
+            if (Crystal_Angle < 360)
+                Crystal_Angle++;
+            else Crystal_Angle = 0;
         }
-        public override void PostUpdate()
+        //cd恢复
+        public override void PostUpdateEquips()
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
-            Magic_Active_Cooldown -= 1;
-            if (Magic_Active_Cooldown == 0)
+            Current_Cooldown += Active_Add_Per_Frame;
+            if (Current_Cooldown < 0)
+                Current_Cooldown = 0;
+            if (Current_Cooldown >= Max_Cooldown)
             {
-                Magic_Active_Cooldown = 600;
+                Current_Cooldown = 0;
                 Magic_Slot.Add_Active();
             }
         }
-        //生成一个水晶
-        public void Create_Crystal(ModProjectile type,int index,int num)
+        //装备加成重置
+        public override void ResetEffects()
         {
-            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
-            Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type.Type, 0, 0, index, num + 1);
+            Magic_Slot.Max_Slots_Count = 1;
+            Active_Add_Per_Frame = 100;
+        }
+        //对水晶栏位索引的影响
+        public void Max_Slots_Addition(int Addition)
+        {
+            Magic_Slot.Max_Slots_Count = 1 + Addition;
+        }
+        //对cd恢复速率的影响，单位1%
+        public void Cooldown_Addition(int Addition)
+        {
+            Active_Add_Per_Frame = 100 + 100 * Addition;
+        }
+        //生成一个水晶
+        public void Create_Crystal(int type, int num)
+        {
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server || Main.LocalPlayer == null) return;
+            Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type, 0, 0, Main.myPlayer, num);
         }
         //清空ui状态
         public override void OnEnterWorld()
@@ -214,6 +263,11 @@ namespace BO.Content.Items.Magic.Magic_System
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             //我咋感觉这样不大行。。。试了试还真行
             ModContent.GetInstance<Magic_Slot_UI_System>().a.Clear_Learned_Crystal();
+        }
+        //添加一个水晶，即要使用的水晶
+        public void Add_Crystal(int ID)
+        {
+            Magic_Slot.Add_Crystal((Crystal_ID)ID);
         }
     }
     //魔法相关ui的那啥，对
@@ -423,7 +477,7 @@ namespace BO.Content.Items.Magic.Magic_System
         //记录已学习水晶并用于翻页显示
         Item[,] Available_Crystal = new Item[6, 9];
         int Page = 0;
-        //不知道为什么渲染的时候总是会向右下偏一像素，为了美观只能往左上写一个像素了
+        //不知道为什么绘制的时候总是会向右下偏一像素，为了美观只能往左上写一个像素了
         Vector2 C_0 = new Vector2(Main.screenWidth * 0.45f - 63f, 105f),
                 C_1 = new Vector2(Main.screenWidth * 0.45f - 8f, 105f),
                 C_2 = new Vector2(Main.screenWidth * 0.45f + 47f, 105f),
@@ -480,7 +534,7 @@ namespace BO.Content.Items.Magic.Magic_System
             D_Cryastal(spriteBatch, Page, 7, Main.screenWidth * 0.45f - 29, 193, C_7);
             D_Cryastal(spriteBatch, Page, 8, Main.screenWidth * 0.45f + 26, 193, C_8);
         }
-        //绘制水晶介绍
+        //绘制水晶介绍的简便方法
         public void D_Cryastal(SpriteBatch spriteBatch, int Page, int Index, float L, float U, Vector2 C)
         {
             if (Available_Crystal[Page, Index] != null)
@@ -494,6 +548,7 @@ namespace BO.Content.Items.Magic.Magic_System
             }
         }
         //翻页按钮交互音效
+        //以及后来追加的添加水晶互动，大的要来喽
         public override void LeftMouseDown(UIMouseEvent evt)
         {
             //上翻
@@ -513,6 +568,24 @@ namespace BO.Content.Items.Magic.Magic_System
                     Page++;
                     SoundEngine.PlaySound(SoundID.MenuOpen);
                 }
+            }
+            Add_Crystal_UI(Main.screenWidth * 0.45f - 84, 83, 0);
+            Add_Crystal_UI(Main.screenWidth * 0.45f - 29, 83, 1);
+            Add_Crystal_UI(Main.screenWidth * 0.45f + 26, 83, 2);
+            Add_Crystal_UI(Main.screenWidth * 0.45f - 84, 138, 3);
+            Add_Crystal_UI(Main.screenWidth * 0.45f - 29, 138, 4);
+            Add_Crystal_UI(Main.screenWidth * 0.45f + 26, 138, 5);
+            Add_Crystal_UI(Main.screenWidth * 0.45f - 84, 193, 6);
+            Add_Crystal_UI(Main.screenWidth * 0.45f - 29, 193, 7);
+            Add_Crystal_UI(Main.screenWidth * 0.45f + 26, 193, 8);
+        }
+        //添加水晶的互动方法
+        public void Add_Crystal_UI(float L,float U,int Index)
+        {
+            if (Main.mouseX > L && Main.mouseX < L + 44 && Main.mouseY > U && Main.mouseY < U + 44 && Main.LocalPlayer.itemAnimation == 0 && Available_Crystal[Page, Index] != null) 
+            {
+                Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Add_Crystal(Magic_Slot_Template.Item_Type_To_Crystal_ID(Available_Crystal[Page, Index].Clone()));
+                //Main.NewText("添加索引" + Index);
             }
         }
         //交互区域设置

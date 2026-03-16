@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using System;
 using Terraria;
 using BO.Content.Items.Magic.Magic_System;
+using Microsoft.CodeAnalysis;
 namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
 {
     public class Book_Of_Leaves : ModItem
@@ -36,8 +37,6 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
     }
     public class Book_Of_Leaves_Crystal : ModProjectile
     {
-        int projectile_slot_index;
-        //void 
         public override void SetDefaults()
         {
             Projectile.netImportant = true;
@@ -47,6 +46,10 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
         }
         public override void AI()
         {
+            Projectile.timeLeft = 60;
+            Projectile.position.X = Main.player[Projectile.owner].Center.X + (float)Math.Cos(Magic_Slot_Sets.Crystal_Angle);
+            Projectile.position.Y = Main.player[Projectile.owner].Center.Y;
+            Main.NewText("i m here");
         }
     }
 }
