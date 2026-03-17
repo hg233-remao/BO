@@ -1,6 +1,6 @@
 using System;
 using System.Text;
-using BO.Content.Items.Magic.Magic_System;
+using BO.Content.another.Magic.Magic_System;
 using Humanizer;
 using Microsoft.Build.Evaluation;
 using Microsoft.Xna.Framework;

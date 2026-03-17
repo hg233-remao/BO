@@ -35,6 +35,7 @@ namespace BO.Content.Items.Grenade
         public override void UpdateAccessory(Item item, Player player, bool hideVisual)
         {
             if (item.type != ItemID.Grenade || Main.netMode == NetmodeID.Server || player.whoAmI != Main.LocalPlayer.whoAmI) return;
+            //player.GetCritChance<MagicDamageClass>() += 100;
             if (CD != 0) CD--;
             if (player.itemAnimation != 0 && CD == 0 && player.HeldItem.DamageType == DamageClass.Ranged)
             {

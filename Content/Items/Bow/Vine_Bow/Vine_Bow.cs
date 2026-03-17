@@ -10,7 +10,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.Utilities;
 
-namespace BO.Content.Items.Vine_Bow
+namespace BO.Content.Items.Bow.Vine_Bow
 {
     public class Vine_Bow : ModItem
     {
@@ -69,7 +69,7 @@ namespace BO.Content.Items.Vine_Bow
         public override bool PreDraw(ref Color lightColor)
         {
             for (int i = 0; i < 5 && Projectile.timeLeft > 30; i++) 
-                Main.spriteBatch.Draw(ModContent.Request<Texture2D>("BO/Content/Items/Vine_Bow/trail").Value, a[i] - Main.screenPosition, null, Color.White * 0.1f * (5 - i), (float)Math.Atan2(Projectile.velocity.Y, Projectile.velocity.X) + MathHelper.ToRadians(90f), ModContent.Request<Texture2D>("BO/Content/Items/Vine_Bow/trail").Value.Size() * 0.5f, 1.2f, SpriteEffects.None, 0);
+                Main.spriteBatch.Draw(ModContent.Request<Texture2D>("BO/Content/Items/Bow/Vine_Bow/trail").Value, a[i] - Main.screenPosition, null, Color.White * 0.1f * (5 - i), (float)Math.Atan2(Projectile.velocity.Y, Projectile.velocity.X) + MathHelper.ToRadians(90f), ModContent.Request<Texture2D>("BO/Content/Items/Bow/Vine_Bow/trail").Value.Size() * 0.5f, 1.2f, SpriteEffects.None, 0);
             return true;
         }
         public override void OnKill(int timeLeft)

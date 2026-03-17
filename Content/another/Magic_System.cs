@@ -22,7 +22,7 @@ using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.UI;
-namespace BO.Content.Items.Magic.Magic_System
+namespace BO.Content.another.Magic.Magic_System
 {
     public class Magic_Slot_Template
     {
@@ -107,15 +107,15 @@ namespace BO.Content.Items.Magic.Magic_System
             if (type == ProjectileID.None)
                 return 0;
             if (type == ModContent.ProjectileType<Book_Of_Leaves_Crystal>())
-                return 1;
+                return 2;
             return 0;
         }
         //这里太乱了导致我写代码经常搞糊涂自己，因此，全部重写！
         //首先澄清几个定义吧
         //活力值，每个水晶都有自己的最大活力值，活力值不同，效果也就不同
         //在游戏里面以栏位的形式体现，一个可以使用的活力值等于一个栏位，同时剩余栏位不足以到达一个水晶的最大活力值时这个水晶无法被创建
-        //玩家当前的活力值上限，默认为一吧
-        public int Max_Active = 1;
+        //玩家当前的活力值上限，默认为一吧，还是调2更适合调试
+        public int Max_Active = 2;
         //玩家当前的活力值
         public int Active = 0;
         //呃然后好像不需要写别的变量了？？？那就写一写那些烦人的方法吧
@@ -162,6 +162,7 @@ namespace BO.Content.Items.Magic.Magic_System
                         if (Magic_Slots[i].Active_Power < Magic_Slots[i].Internal_Max_Active)
                         {
                             Magic_Slots[i].Check_state(1, Crystal_Num());
+                            break;
                         }
                     }
                 }
@@ -180,10 +181,12 @@ namespace BO.Content.Items.Magic.Magic_System
                         if (Magic_Slots[i].Active_Power > 0)
                         {
                             Magic_Slots[i].Check_state(-1, Crystal_Num());
+                            break;
                         }
                         else
                         {
                             Magic_Slots[i - 1].Check_state(-1, Crystal_Num());
+                            break;
                         }
                     }
                 }
@@ -205,7 +208,8 @@ namespace BO.Content.Items.Magic.Magic_System
                 {
                     if (Magic_Slots[i].Magic_Barrier_Crystal_Type == 0)
                     {
-                        Magic_Slots[i].Set_Crystal(type, Max_Active - Active, Crystal_Num());
+                        Magic_Slots[i].Set_Crystal(type, Active - Using_Active(), Crystal_Num());
+                        break;
                     }
                 }
         }
@@ -218,6 +222,7 @@ namespace BO.Content.Items.Magic.Magic_System
                     if (Magic_Slots[i].Magic_Barrier_Crystal_Type == 0)
                     {
                         Magic_Slots[i - 1].Clear_Crystal(Crystal_Num());
+                        break;
                     }
                 }
         }
@@ -289,7 +294,7 @@ namespace BO.Content.Items.Magic.Magic_System
         //装备加成重置
         public override void ResetEffects()
         {
-            Magic_Slot.Max_Active = 1;
+            Magic_Slot.Max_Active = 2;
             Active_Add_Per_Frame = 100;
         }
         //对活力值上限的影响
@@ -701,7 +706,7 @@ namespace BO.Content.Items.Magic.Magic_System
     //便于进行多人同步的水晶弹幕基类，以后写水晶弹幕必须继承这个，否则魔力系统绝对会报错，还有就是这里还得多写点多人同步的代码
     public abstract class Crystal_Projectile : ModProjectile
     {
-        int Crystal_num = 0, Active_Power = 0;
+        protected int Crystal_num = 0, Active_Power = 0;
         public void Sync(int Crystal_num_S, int Active_Power_S)
         {
             Crystal_num = Crystal_num_S;

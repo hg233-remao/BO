@@ -58,6 +58,7 @@ Projectiles: {
 	Vine_Bow_p1.DisplayName: Vine_ Bow_p1
 	Wand_Of_Sparking_Ammo_Projectile.DisplayName: Wand_ Of_ Sparking_ Ammo_ Projectile
 	Book_Of_Leaves_Crystal.DisplayName: Book_ Of_ Leaves_ Crystal
+	Book_Of_Leaves_Crystal_Leaves.DisplayName: Book_ Of_ Leaves_ Crystal_ Leaves
 }
 
 GrenadeToolTip: Mods.BO.GrenadeToolTip
