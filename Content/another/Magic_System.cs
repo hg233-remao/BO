@@ -374,6 +374,7 @@ namespace BO.Content.another.Magic.Magic_System
         UIPanel backu = new UIPanel();
         UIPanel backd = new UIPanel();
         UIPanel[] Nine_Crystal_Panel = new UIPanel[9];
+        UIPanel Crystal_Delete_Back = new UIPanel();
         public void Clear_Learned_Crystal()
         {
             Crystal_Adding_UI.Clear();
@@ -403,6 +404,9 @@ namespace BO.Content.another.Magic.Magic_System
             backd.Width.Set(45, 0f);
             backd.Height.Set(45, 0f);
             //Append(backd);
+            Crystal_Delete_Back.Top.Set(155, 0f);
+            Crystal_Delete_Back.Width.Set(45, 0f);
+            Crystal_Delete_Back.Height.Set(45, 0f);
             for (int i = 0; i <= 8; i++)
                 Nine_Crystal_Panel[i] = new UIPanel();
             for (int i = 0; i <= 8; i++)
@@ -423,6 +427,7 @@ namespace BO.Content.another.Magic.Magic_System
             back.Left.Set(Main.screenWidth * 0.45f - 95f, 0f);
             backu.Left.Set(Main.screenWidth * 0.45f + 85f, 0f);
             backd.Left.Set(Main.screenWidth * 0.45f + 85f, 0f);
+            Crystal_Delete_Back.Left.Set(Main.screenWidth * 0.45f + 85f, 0f);
             Nine_Crystal_Panel[0].Left.Set(Main.screenWidth * 0.45f - 84, 0f);
             Nine_Crystal_Panel[1].Left.Set(Main.screenWidth * 0.45f - 29, 0f);
             Nine_Crystal_Panel[2].Left.Set(Main.screenWidth * 0.45f + 26, 0f);
@@ -453,6 +458,7 @@ namespace BO.Content.another.Magic.Magic_System
                     Append(backd);
                     Apall();
                     Append(Crystal_Adding_UI);
+                    Append(Crystal_Delete_Back);
                     SoundEngine.PlaySound(SoundID.MenuOpen);
                     IsHide = false;
                 }
@@ -463,6 +469,7 @@ namespace BO.Content.another.Magic.Magic_System
                     RemoveChild(backd);
                     Rmall();
                     RemoveChild(Crystal_Adding_UI);
+                    RemoveChild(Crystal_Delete_Back);
                     SoundEngine.PlaySound(SoundID.MenuClose);
                     IsHide = true;
                 }
@@ -536,8 +543,9 @@ namespace BO.Content.another.Magic.Magic_System
                 C_5 = new Vector2(Main.screenWidth * 0.45f + 47f, 160f),
                 C_6 = new Vector2(Main.screenWidth * 0.45f - 63f, 215f),
                 C_7 = new Vector2(Main.screenWidth * 0.45f - 8f, 215f),
-                C_8 = new Vector2(Main.screenWidth * 0.45f + 47f, 215f)
-            ;
+                C_8 = new Vector2(Main.screenWidth * 0.45f + 47f, 215f),
+                //删除按钮的绘制位置，待填·······
+                C_DE = new Vector2();
         public override void OnInitialize()
         {
             arrow1 = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/arrow1");
@@ -573,7 +581,6 @@ namespace BO.Content.another.Magic.Magic_System
              * 的顺序写喽
              */
             Check_Learned_Crystal();
-            //第一个栏
             D_Cryastal(spriteBatch, Page, 0, Main.screenWidth * 0.45f - 84, 83, C_0);
             D_Cryastal(spriteBatch, Page, 1, Main.screenWidth * 0.45f - 29, 83, C_1);
             D_Cryastal(spriteBatch, Page, 2, Main.screenWidth * 0.45f + 26, 83, C_2);
@@ -584,7 +591,7 @@ namespace BO.Content.another.Magic.Magic_System
             D_Cryastal(spriteBatch, Page, 7, Main.screenWidth * 0.45f - 29, 193, C_7);
             D_Cryastal(spriteBatch, Page, 8, Main.screenWidth * 0.45f + 26, 193, C_8);
         }
-        //绘制水晶介绍的简便方法
+        //绘制水晶介绍及贴图的简便方法
         public void D_Cryastal(SpriteBatch spriteBatch, int Page, int Index, float L, float U, Vector2 C)
         {
             if (Available_Crystal[Page, Index] != null)
@@ -635,7 +642,6 @@ namespace BO.Content.another.Magic.Magic_System
             if (Main.mouseX > L && Main.mouseX < L + 44 && Main.mouseY > U && Main.mouseY < U + 44 && Main.LocalPlayer.itemAnimation == 0 && Available_Crystal[Page, Index] != null) 
             {
                 Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Add_Crystal(Available_Crystal[Page, Index].type);
-                //Main.NewText("添加索引" + Index);
             }
         }
         //交互区域设置
@@ -673,6 +679,21 @@ namespace BO.Content.another.Magic.Magic_System
             for (int i = 0; i < 6; i++)
                 for (int j = 0; j < 9; j++)
                     Available_Crystal[i, j] = null;
+        }
+        //移除最右侧水晶的按钮绘制
+        public void Remove_An_Crystal_Draw(SpriteBatch spriteBatch,Vector2 C)
+        { 
+                        
+        }
+        //移除最右侧水晶的按钮互动
+        public void Remove_An_Crystal_Action()
+        { 
+            
+        }
+        //绘制当前添加的水晶数量，活力值，活力上限等属性，总之是个很大的状态栏
+        public void Crystal_Active_State_Draw()
+        { 
+            
         }
     }
     //改变全物品的魔力机制，同时设定特定武器的可收集魔力量上限
