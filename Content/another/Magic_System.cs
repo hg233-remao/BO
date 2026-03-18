@@ -114,7 +114,7 @@ namespace BO.Content.another.Magic.Magic_System
         //首先澄清几个定义吧
         //活力值，每个水晶都有自己的最大活力值，活力值不同，效果也就不同
         //在游戏里面以栏位的形式体现，一个可以使用的活力值等于一个栏位，同时剩余栏位不足以到达一个水晶的最大活力值时这个水晶无法被创建
-        //玩家当前的活力值上限，默认为一吧，还是调2更适合调试
+        //玩家当前的活力值上限，默认为2吧，还是调2更适合调试
         public int Max_Active = 2;
         //玩家当前的活力值
         public int Active = 0;
@@ -263,6 +263,7 @@ namespace BO.Content.another.Magic.Magic_System
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Magic_Slot.Remove_Active();
+            Current_Cooldown = 0;
         }
         //死掉时移除所有活力值
         public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
@@ -707,10 +708,48 @@ namespace BO.Content.another.Magic.Magic_System
                 SoundEngine.PlaySound(SoundID.MenuClose);
             }
         }
-        //绘制当前添加的水晶数量，活力值，活力上限等属性，总之是个很大的状态栏
-        public void Crystal_Active_State_Draw()
-        { 
-            
+    }
+    //绘制当前添加的水晶数量，活力值，活力上限等属性，总之是个很大的状态栏
+    public class Crystal_Using_State : UIElement
+    {
+        //一种水晶一个变量
+        Texture2D[] Crystal_Empty,Crystal_Book_Of_Leaves;
+        //获取本地玩家的水晶用的变量
+        Magic_Slot_Sets My_Player_Magic_Slot = Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>();
+        //绘制逻辑，最囊的地方
+        public override void Draw(SpriteBatch spriteBatch)
+        {
+            base.Draw(spriteBatch);
+
+        }
+        //ui贴图的话，我打算宽度强制限制在9，为了清晰度以及贴图大小匹配的话，那就是18，高度随意，可能要在竖直方向上加一点创意元素，不过都是要以中间为原点，而且必须为4的倍数，就算是2的倍数不是4的倍数也得留两个空凑一凑
+        public Crystal_Using_State() 
+        {
+            Crystal_Empty =
+            [
+                (Texture2D)ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Empty_0"),
+                (Texture2D)ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Empty_1")
+            ];
+            Crystal_Book_Of_Leaves =
+            [
+                (Texture2D)ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Book_Of_Leaves_0"),
+                (Texture2D)ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Book_Of_Leaves_1")
+            ];
+        }
+        //返回所需要的贴图，0代表无活力，非0代表有活力
+        public Texture2D Get_Texture(int crystal_Type, int active) 
+        {
+            if (active != 0)
+                active = 1;
+            if (crystal_Type == 0)
+            {
+                return Crystal_Empty[active];
+            }
+            if (crystal_Type == ModContent.ProjectileType<Book_Of_Leaves_Crystal>())
+            {
+                return Crystal_Book_Of_Leaves[active];
+            }
+            return null;
         }
     }
     //改变全物品的魔力机制，同时设定特定武器的可收集魔力量上限
@@ -725,6 +764,7 @@ namespace BO.Content.another.Magic.Magic_System
         }
         public override bool InstancePerEntity => true;
     }
+    //把原版的魔力绘制隐藏
     public class Hide_Mana : ModResourceOverlay
     {
         public override bool PreDrawResourceDisplay(PlayerStatsSnapshot snapshot, IPlayerResourcesDisplaySet displaySet, bool drawingLife, ref Color textColor, out bool drawText)
