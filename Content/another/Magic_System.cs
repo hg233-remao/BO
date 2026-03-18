@@ -216,6 +216,7 @@ namespace BO.Content.another.Magic.Magic_System
         //在最右侧删除一个水晶
         public void Clear_Crystal()
         {
+            //Main.NewText("i was cleared");
             if (Magic_Slots[0].Magic_Barrier_Crystal_Type != 0) 
                 for (int i = 0; i < Magic_Slots.Length; i++)
                 {
@@ -457,8 +458,8 @@ namespace BO.Content.another.Magic.Magic_System
                     Append(backu);
                     Append(backd);
                     Apall();
-                    Append(Crystal_Adding_UI);
                     Append(Crystal_Delete_Back);
+                    Append(Crystal_Adding_UI);
                     SoundEngine.PlaySound(SoundID.MenuOpen);
                     IsHide = false;
                 }
@@ -468,8 +469,8 @@ namespace BO.Content.another.Magic.Magic_System
                     RemoveChild(backu);
                     RemoveChild(backd);
                     Rmall();
-                    RemoveChild(Crystal_Adding_UI);
                     RemoveChild(Crystal_Delete_Back);
+                    RemoveChild(Crystal_Adding_UI);
                     SoundEngine.PlaySound(SoundID.MenuClose);
                     IsHide = true;
                 }
@@ -529,8 +530,9 @@ namespace BO.Content.another.Magic.Magic_System
     //翻页按钮和水晶构建
     public class Crystal_Adding_UI : UIElement
     {
-        Asset<Texture2D> arrow1,arrow2;
+        Asset<Texture2D> arrow1,arrow2,De1,De2;
         Vector2 su = new Vector2(Main.screenWidth * 0.45f + 92f, 76),xu = new Vector2(Main.screenWidth * 0.45f + 92f,211);
+        Vector2 de = new Vector2(Main.screenWidth * 0.45f + 88f, 161);
         //记录已学习水晶并用于翻页显示
         Item[,] Available_Crystal = new Item[6, 9];
         int Page = 0;
@@ -550,6 +552,8 @@ namespace BO.Content.another.Magic.Magic_System
         {
             arrow1 = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/arrow1");
             arrow2 = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/arrow2");
+            De1 = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/Remove_Crystal_1");
+            De2 = ModContent.Request<Texture2D>("BO/Content/another/Magic_Image/Remove_Crystal_2");
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
@@ -590,6 +594,7 @@ namespace BO.Content.another.Magic.Magic_System
             D_Cryastal(spriteBatch, Page, 6, Main.screenWidth * 0.45f - 84, 193, C_6);
             D_Cryastal(spriteBatch, Page, 7, Main.screenWidth * 0.45f - 29, 193, C_7);
             D_Cryastal(spriteBatch, Page, 8, Main.screenWidth * 0.45f + 26, 193, C_8);
+            Remove_An_Crystal_Draw(spriteBatch, de);
         }
         //绘制水晶介绍及贴图的简便方法
         public void D_Cryastal(SpriteBatch spriteBatch, int Page, int Index, float L, float U, Vector2 C)
@@ -635,6 +640,7 @@ namespace BO.Content.another.Magic.Magic_System
             Add_Crystal_UI(Main.screenWidth * 0.45f - 84, 193, 6);
             Add_Crystal_UI(Main.screenWidth * 0.45f - 29, 193, 7);
             Add_Crystal_UI(Main.screenWidth * 0.45f + 26, 193, 8);
+            Remove_An_Crystal_Action();
         }
         //添加水晶的互动方法
         public void Add_Crystal_UI(float L,float U,int Index)
@@ -682,13 +688,24 @@ namespace BO.Content.another.Magic.Magic_System
         }
         //移除最右侧水晶的按钮绘制
         public void Remove_An_Crystal_Draw(SpriteBatch spriteBatch,Vector2 C)
-        { 
-                        
+        {
+
+            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 155 && Main.mouseY < 200 && Main.LocalPlayer.itemAnimation == 0)
+            {
+                spriteBatch.Draw(De2.Value, C, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                Main.LocalPlayer.mouseInterface = true;
+            }
+            else
+                spriteBatch.Draw(De1.Value, C, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
         }
         //移除最右侧水晶的按钮互动
         public void Remove_An_Crystal_Action()
-        { 
-            
+        {
+            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 155 && Main.mouseY < 200 && Main.LocalPlayer.itemAnimation == 0 && Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Max_Using_Active() > 0) 
+            {
+                Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Clear_Crystal();
+                SoundEngine.PlaySound(SoundID.MenuClose);
+            }
         }
         //绘制当前添加的水晶数量，活力值，活力上限等属性，总之是个很大的状态栏
         public void Crystal_Active_State_Draw()
