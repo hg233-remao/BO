@@ -309,7 +309,7 @@ namespace BO.Content.another.Magic.Magic_System
         {
             Active_Add_Per_Frame = 100 + 100 * Addition;
         }
-        //清空ui状态
+        //清空ui状态,以及防止一些ui空引用行为
         public override void OnEnterWorld()
         {
             if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
@@ -369,7 +369,7 @@ namespace BO.Content.another.Magic.Magic_System
         6 7 8
         3列3行够了吗，应该够吧，来吧，写一下米妮
         */
-        bool IsHide =true;
+        bool IsHide = true;
         Single_Slot_UI Single_Slot_UI = new Single_Slot_UI();
         Crystal_Adding_UI Crystal_Adding_UI = new Crystal_Adding_UI();
         UIPanel back = new UIPanel();
@@ -377,6 +377,7 @@ namespace BO.Content.another.Magic.Magic_System
         UIPanel backd = new UIPanel();
         UIPanel[] Nine_Crystal_Panel = new UIPanel[9];
         UIPanel Crystal_Delete_Back = new UIPanel();
+        Crystal_Using_State Crystal_Using_State = new Crystal_Using_State();
         public void Clear_Learned_Crystal()
         {
             Crystal_Adding_UI.Clear();
@@ -393,6 +394,7 @@ namespace BO.Content.another.Magic.Magic_System
             Left.Set(0, 0f);
             Top.Set(0, 0f);
             Append(Single_Slot_UI);
+            Append(Crystal_Using_State);
             //Single_Slot_UI.OnInitialize();
             back.Top.Set(70, 0f);
             back.Width.Set(225, 0f);
@@ -713,27 +715,69 @@ namespace BO.Content.another.Magic.Magic_System
     public class Crystal_Using_State : UIElement
     {
         //一种水晶一个变量
-        Texture2D[] Crystal_Empty,Crystal_Book_Of_Leaves;
+        Asset<Texture2D>[] Crystal_Empty,Crystal_Book_Of_Leaves;
+        float Draw_position = Main.screenWidth * 0.45f + 50f;
         //获取本地玩家的水晶用的变量
-        Magic_Slot_Sets My_Player_Magic_Slot = Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>();
+        Magic_Slot_Template My_Player_Magic_Slot;
+        public override void OnInitialize()
+        {
+            Crystal_Empty =
+            [
+                ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Empty_0"),
+                ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Empty_1")
+            ];
+            Crystal_Book_Of_Leaves =
+            [
+                ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Book_Of_Leaves_0"),
+                ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Book_Of_Leaves_1")
+            ];
+        }
         //绘制逻辑，最囊的地方
         public override void Draw(SpriteBatch spriteBatch)
         {
             base.Draw(spriteBatch);
-
+            if (Main.LocalPlayer != null)
+                My_Player_Magic_Slot = Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Magic_Slot;
+            else
+                return;
+            Draw_position = Main.screenWidth * 0.45f + 50f;
+            for (int i = 0; true; i++)
+            {
+                for (int j = 0; j < My_Player_Magic_Slot.Magic_Slots[i].Active_Power; j++, Draw_position += 19f) 
+                {
+                    spriteBatch.Draw(Get_Texture(My_Player_Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type, 1), new Vector2(Draw_position, 50f), null, Color.White, 0f, Get_Texture(My_Player_Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type, 1).Size() * 0.5f, 1f, SpriteEffects.None, 0);
+                }
+                for (int j = 0; j < My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active - My_Player_Magic_Slot.Magic_Slots[i].Active_Power; j++, Draw_position += 19f) 
+                {
+                    spriteBatch.Draw(Get_Texture(My_Player_Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type, 0), new Vector2(Draw_position, 50f), null, Color.White, 0f, Get_Texture(My_Player_Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type, 0).Size() * 0.5f, 1f, SpriteEffects.None, 0);
+                }
+                for (int j = 0; j < My_Player_Magic_Slot.Active - My_Player_Magic_Slot.Max_Using_Active(); j++, Draw_position += 19f)
+                {
+                    spriteBatch.Draw(Get_Texture(My_Player_Magic_Slot.Magic_Slots[i + 1].Magic_Barrier_Crystal_Type, 1), new Vector2(Draw_position, 50f), null, Color.White, 0f, Get_Texture(My_Player_Magic_Slot.Magic_Slots[i + 1].Magic_Barrier_Crystal_Type, 1).Size() * 0.5f, 1f, SpriteEffects.None, 0);
+                }
+                for (int j = 0; j < My_Player_Magic_Slot.Max_Active - My_Player_Magic_Slot.Active - My_Player_Magic_Slot.Max_Using_Active(); j++, Draw_position += 19f) 
+                {
+                    spriteBatch.Draw(Get_Texture(My_Player_Magic_Slot.Magic_Slots[i + 1].Magic_Barrier_Crystal_Type, 0), new Vector2(Draw_position, 50f), null, Color.White, 0f, Get_Texture(My_Player_Magic_Slot.Magic_Slots[i + 1].Magic_Barrier_Crystal_Type, 0).Size() * 0.5f, 1f, SpriteEffects.None, 0);
+                }
+                if (My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active > My_Player_Magic_Slot.Magic_Slots[i].Active_Power || My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active == 0)  
+                {
+                    break;
+                }
+            }
         }
         //ui贴图的话，我打算宽度强制限制在9，为了清晰度以及贴图大小匹配的话，那就是18，高度随意，可能要在竖直方向上加一点创意元素，不过都是要以中间为原点，而且必须为4的倍数，就算是2的倍数不是4的倍数也得留两个空凑一凑
+        //初始化获取贴图
         public Crystal_Using_State() 
         {
             Crystal_Empty =
             [
-                (Texture2D)ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Empty_0"),
-                (Texture2D)ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Empty_1")
+                ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Empty_0"),
+                ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Empty_1")
             ];
             Crystal_Book_Of_Leaves =
             [
-                (Texture2D)ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Book_Of_Leaves_0"),
-                (Texture2D)ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Book_Of_Leaves_1")
+                ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Book_Of_Leaves_0"),
+                ModContent.Request<Texture2D>("BO/Content/another/Magic_State_Image/Crystal_Book_Of_Leaves_1")
             ];
         }
         //返回所需要的贴图，0代表无活力，非0代表有活力
@@ -743,11 +787,11 @@ namespace BO.Content.another.Magic.Magic_System
                 active = 1;
             if (crystal_Type == 0)
             {
-                return Crystal_Empty[active];
+                return Crystal_Empty[active].Value;
             }
             if (crystal_Type == ModContent.ProjectileType<Book_Of_Leaves_Crystal>())
             {
-                return Crystal_Book_Of_Leaves[active];
+                return Crystal_Book_Of_Leaves[active].Value;
             }
             return null;
         }
