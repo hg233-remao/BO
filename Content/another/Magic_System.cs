@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Timers;
 using BO.Content.another.spearglobalsets;
 using BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves;
 using BO.Content.Items.Magic.Wands.Wand_Of_Sparking;
@@ -21,6 +25,7 @@ using Terraria.GameContent.UI.ResourceSets;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 using Terraria.UI;
 namespace BO.Content.another.Magic.Magic_System
 {
@@ -54,7 +59,7 @@ namespace BO.Content.another.Magic.Magic_System
                     Crystal_Projectile Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
                     Crystal_Projectile_C.Sync(Crystal_Num, Active_Power);
                 }
-                else
+                else if (Projectile_Index != null) 
                 {
                     Main.projectile[(int)Projectile_Index].Kill();
                     Projectile_Index = null;
@@ -202,7 +207,7 @@ namespace BO.Content.another.Magic.Magic_System
         //在最右侧槽设置一个水晶
         public void Set_Crystal(int type)
         {
-            type = Crystal_Convert_Projecile(type);
+            //type = Crystal_Convert_Projecile(type);
             if (Max_Using_Active() + Crystal_Whose_Space(type) <= Max_Active)
                 for (int i = 0; i < Magic_Slots.Length; i++)
                 {
@@ -234,7 +239,7 @@ namespace BO.Content.another.Magic.Magic_System
         //用来调整所有水晶的角度
         public static int Crystal_Angle = 0;
         //一个魔法栏位的实例
-        public Magic_Slot_Template Magic_Slot = new Magic_Slot_Template();
+        public Magic_Slot_Template Magic_Slot;
         //法杖充能量
         public int Magic_Ammo = 0;
         public bool Full_Entity_Power = false;
@@ -249,6 +254,10 @@ namespace BO.Content.another.Magic.Magic_System
         public int Current_Cooldown = 0;
         //充能上限
         public const int Max_Cooldown = 60000;
+        //保存加载用的中间变量
+        int[] ALL = new int[108];
+        //检查玩家是否在游戏中，因为总是出现奇怪的数组重置现象，所以只能另寻它径
+        bool Is_In_Game = false;
         //将学习水晶的数组序列与水晶介绍物品的type映射起来
         public static int Index_To_Crystal_Item_Type(int Index)
         {
@@ -309,17 +318,85 @@ namespace BO.Content.another.Magic.Magic_System
         {
             Active_Add_Per_Frame = 100 + 100 * Addition;
         }
-        //清空ui状态,以及防止一些ui空引用行为
-        public override void OnEnterWorld()
-        {
-            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
-            //我咋感觉这样不大行。。。试了试还真行
-            ModContent.GetInstance<Magic_Slot_UI_System>().a.Clear_Learned_Crystal();
-        }
         //添加一个水晶，即要使用的水晶
         public void Add_Crystal(int ID)
         {
             Magic_Slot.Set_Crystal(ID);
+        }
+        //初始化
+        public override void Initialize()
+        {
+            if (Main.LocalPlayer == null)
+                return;
+            Magic_Slot = new Magic_Slot_Template();
+        }
+        //保存这个玩家学习的水晶以及设置的水晶
+        public override void SaveData(TagCompound tag)
+        {
+            for (int i = 0; i < Has_Learned_Magic.Length; i++) 
+            {
+                if (Has_Learned_Magic[i] == true) 
+                    ALL[i] = 1;
+                else
+                    ALL[i] = 0;
+            }
+            if (Is_In_Game)  
+            {
+                for (int i = 0; i < Magic_Slot.Magic_Slots.Length; i++)
+                {
+                    ALL[54 + i] = Crystal_ID_To_Custom_ID(Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type);
+                }
+                Is_In_Game = false;
+            }
+            
+            tag["ALL"] = ALL;
+        }
+        //加载这个玩家学习的水晶以及设置的水晶
+        public override void LoadData(TagCompound tag)
+        {
+            if (tag.Get<int[]>("ALL") == null)
+                return;
+            for (int i = 0; i < Has_Learned_Magic.Length; i++)
+            {
+                if (tag.Get<int[]>("ALL")[i] == 1)
+                    Has_Learned_Magic[i] = true;
+                else
+                    Has_Learned_Magic[i] = false;
+            }
+            for (int i = 0; i < Magic_Slot.Magic_Slots.Length; i++)
+            {
+                ALL[54 + i] = tag.Get<int[]>("ALL")[54 + i];
+            }
+        }
+        //清空ui状态,以及防止一些ui空引用行为,以及进入游戏后读取水晶设置状态
+        public override void OnEnterWorld()
+        {
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
+            Is_In_Game = true;
+            //我咋感觉这样不大行。。。试了试还真行
+            ModContent.GetInstance<Magic_Slot_UI_System>().a.Clear_Learned_Crystal();
+            for (int i = 0; i < Magic_Slot.Magic_Slots.Length; i++)
+            {
+                Magic_Slot.Set_Crystal(Custom_ID_To_Crystal_ID(ALL[54 + i]));
+            }
+        }
+        //自定义ID转水晶弹幕ID，防止重加载mod崩档
+        public int Custom_ID_To_Crystal_ID(int Custom_ID)
+        {
+            if (Custom_ID == 0)
+                return 0;
+            if (Custom_ID == 1)
+                return ModContent.ProjectileType<Book_Of_Leaves_Crystal>();
+            return 0;
+        }
+        //水晶弹幕ID转自定义ID，防止重加载mod崩档
+        public int Crystal_ID_To_Custom_ID(int Crystal_ID)
+        {
+            if (Crystal_ID == 0)
+                return 0;
+            if (Crystal_ID == ModContent.ProjectileType<Book_Of_Leaves_Crystal>())
+                return 1;
+            return 0;
         }
     }
     //魔法相关ui的那啥，对
@@ -648,9 +725,11 @@ namespace BO.Content.another.Magic.Magic_System
         //添加水晶的互动方法
         public void Add_Crystal_UI(float L,float U,int Index)
         {
+            if (Main.LocalPlayer == null)
+                return;
             if (Main.mouseX > L && Main.mouseX < L + 44 && Main.mouseY > U && Main.mouseY < U + 44 && Main.LocalPlayer.itemAnimation == 0 && Available_Crystal[Page, Index] != null) 
             {
-                Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Add_Crystal(Available_Crystal[Page, Index].type);
+                Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Add_Crystal(Magic_Slot_Template.Crystal_Convert_Projecile(Available_Crystal[Page, Index].type));
             }
         }
         //交互区域设置

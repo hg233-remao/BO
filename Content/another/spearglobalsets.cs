@@ -101,10 +101,12 @@ namespace BO.Content.another.spearglobalsets
                 Main.LocalPlayer.inventory[Main.LocalPlayer.selectedItem] = c.Clone();
             }
         }
+        //保存矛枪栏物品
         public override void SaveData(TagCompound tag)
         {
             tag["spear"] = ItemIO.Save(spearslot[0]);
         }
+        //加载矛枪栏物品
         public override void LoadData(TagCompound tag)
         {
             spearslot[0] = ItemIO.Load(tag.Get<TagCompound>("spear"));

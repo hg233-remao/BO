@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BO.Content.another.Magic.Magic_System;
 using BO.Content.another.spearglobalsets;
 using BO.Content.Items.Swords.Living_Wooden_sword;
 using BO.Content.Tiles.black_obstacle;
