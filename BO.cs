@@ -45,6 +45,10 @@ namespace BO
                         p1.targetn = reader.ReadInt32();
                     }
                 }
+                if (a == "Crystal_Angle_To_Zero")
+                {
+                    Magic_Slot_Sets.Crystal_Angle_Set(0);
+                }
                 /*if (a == "SpearSlotSyncTMC")∞°∞°∞°Œ“–¡–¡ø‡ø‡–¥µƒÕ¨≤Ω∞°
                 {
                     int playerindex = reader.ReadInt32(), b = reader.ReadInt32(), c = reader.ReadInt32(), d = reader.ReadInt32();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -14,6 +15,7 @@ using Humanizer;
 using JetBrains.Annotations;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using rail;
 using ReLogic.Content;
 using Steamworks;
 using Terraria;
@@ -283,7 +285,7 @@ namespace BO.Content.another.Magic.Magic_System
         //检测玩家上一帧所持物品,以及水晶转动角度
         public override void PreUpdate()
         {
-            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
+            if (Main.netMode == NetmodeID.Server) return;
             Hold_Item_Before = Player.HeldItem.type;
             if (Crystal_Angle < 360)
                 Crystal_Angle++;
@@ -371,7 +373,7 @@ namespace BO.Content.another.Magic.Magic_System
         //清空ui状态,以及防止一些ui空引用行为,以及进入游戏后读取水晶设置状态
         public override void OnEnterWorld()
         {
-            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
+            if (Main.netMode == NetmodeID.Server) return;
             Is_In_Game = true;
             //我咋感觉这样不大行。。。试了试还真行
             ModContent.GetInstance<Magic_Slot_UI_System>().a.Clear_Learned_Crystal();
@@ -397,6 +399,39 @@ namespace BO.Content.another.Magic.Magic_System
             if (Crystal_ID == ModContent.ProjectileType<Book_Of_Leaves_Crystal>())
                 return 1;
             return 0;
+        }
+        //设置水晶角度
+        public static void Crystal_Angle_Set(int Angle)
+        { 
+            Crystal_Angle = Angle;
+        }
+        //多人水晶角度同步
+        public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
+        {
+            if (Main.netMode == NetmodeID.Server && newPlayer) 
+            {
+                ModPacket Crystal_Angle_To_Zero_Packet = Mod.GetPacket();
+                Crystal_Angle_To_Zero_Packet.Write("Crystal_Angle_To_Zero");
+                Crystal_Angle_To_Zero_Packet.Send();
+            }
+        }
+    }
+    //全局水晶角度，主要用来多人同步水晶角度，我打算给每个玩家的水晶角度都弄一样了，稍微节省点性能，开发起来也容易
+    public class Crystal_Angle_set : ModSystem
+    {
+        public static int Crystal_Angle = 0;
+        public override void OnModLoad()
+        {
+        }
+        public override void NetSend(BinaryWriter writer)
+        {
+            if (Main.netMode != NetmodeID.Server) return;
+            writer.Write(Crystal_Angle);
+        }
+        public override void NetReceive(BinaryReader reader)
+        {
+            if (Main.netMode != NetmodeID.MultiplayerClient) return;
+            Magic_Slot_Sets.Crystal_Angle_Set(reader.ReadInt32());
         }
     }
     //魔法相关ui的那啥，对
@@ -612,7 +647,7 @@ namespace BO.Content.another.Magic.Magic_System
     {
         Asset<Texture2D> arrow1,arrow2,De1,De2;
         Vector2 su = new Vector2(Main.screenWidth * 0.45f + 92f, 76),xu = new Vector2(Main.screenWidth * 0.45f + 92f,211);
-        Vector2 de = new Vector2(Main.screenWidth * 0.45f + 88f, 161);
+        Vector2 de = new Vector2(Main.screenWidth * 0.45f + 92f, 161);
         //记录已学习水晶并用于翻页显示
         Item[,] Available_Crystal = new Item[6, 9];
         int Page = 0;
@@ -745,9 +780,11 @@ namespace BO.Content.another.Magic.Magic_System
             base.Recalculate();
             if (Parent != null)
             {
+                Main.instance.Window.Title = "controling player:" + Main.LocalPlayer.name;
                 su.X = Main.screenWidth * 0.45f + 92f;
                 xu.X = Main.screenWidth * 0.45f + 92f;
                 C_0.X = Main.screenWidth * 0.45f - 63f;
+                de.X = Main.screenWidth * 0.45f + 92f;
             }  
         }
         //读取玩家已学习水晶并放入二维数组
@@ -912,6 +949,20 @@ namespace BO.Content.another.Magic.Magic_System
         {
             Crystal_num = Crystal_num_S;
             Active_Power = Active_Power_S;
+            if (Main.netMode == NetmodeID.Server)
+            {
+                NetMessage.SendData(MessageID.SyncProjectile, -1, -1, null, Projectile.whoAmI);
+            }
+        }
+        public override void SendExtraAI(BinaryWriter writer)
+        {
+            writer.Write(Crystal_num);
+            writer.Write(Active_Power);
+        }
+        public override void ReceiveExtraAI(BinaryReader reader)
+        {
+            Crystal_num = reader.ReadInt32();
+            Active_Power = reader.ReadInt32();
         }
     }
 }
