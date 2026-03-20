@@ -20,6 +20,7 @@ using ReLogic.Content;
 using Steamworks;
 using Terraria;
 using Terraria.Audio;
+using Terraria.Chat;
 using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
@@ -46,22 +47,28 @@ namespace BO.Content.another.Magic.Magic_System
             public int Order = 0;
             //这个槽绑定的水晶的索引
             public int? Projectile_Index = null;
+            //这个槽所属玩家，用于多人同步
+            public int Player_Master_Index;
             //初始化时告诉这个槽它的顺序
-            public Magic_Barrier_Crystal_In_Slots(int order)
-            { 
+            public Magic_Barrier_Crystal_In_Slots(int order,int whoami)
+            {
                 Order = order;
+                Player_Master_Index = whoami;
             }
             //检测一次自身状态，一般在自己的活力值改变时使用，因此我将改变水晶活力值的地方集成在这个方法上了
-            public void Check_state(int active,int Crystal_Num)
-            { 
+            public void Check_state(int active, int Crystal_Num)
+            {
+                if (Main.netMode != NetmodeID.Server && Main.myPlayer == Player_Master_Index)
+                    return;
+                Crystal_Projectile Crystal_Projectile_C;
                 Active_Power += active;
                 if (Magic_Barrier_Crystal_Type != 0)
                 {
                     //气死我了，写到这里发现要多人同步的话还得写个水晶弹幕的基类
-                    Crystal_Projectile Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
-                    Crystal_Projectile_C.Sync(Crystal_Num, Active_Power);
+                    Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
+                    Crystal_Projectile_C.Sync(Crystal_Num, Active_Power, Order);
                 }
-                else if (Projectile_Index != null) 
+                else if (Projectile_Index != null)
                 {
                     Main.projectile[(int)Projectile_Index].Kill();
                     Projectile_Index = null;
@@ -69,13 +76,14 @@ namespace BO.Content.another.Magic.Magic_System
             }
             //为这个槽设置一个水晶，并根据给予活力值刷新一次
             //创建水晶的射弹时最后三个参数告诉射弹槽序列目前水晶数量这个槽的活力值
-            public void Set_Crystal(int type,int active,int Crystal_Num)
+            public void Set_Crystal(int type, int active, int Crystal_Num)
             {
                 Magic_Barrier_Crystal_Type = type;
                 Internal_Max_Active = Crystal_Whose_Space(type);
                 if (Magic_Barrier_Crystal_Type != 0)
                 {
-                    Projectile_Index = Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type, 1, 1, Main.myPlayer, Order, Crystal_Num, Active_Power);
+                    if (Main.netMode != NetmodeID.Server && Main.myPlayer == Player_Master_Index)
+                        Projectile_Index = Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type, 1, 1, Main.myPlayer, Order, Crystal_Num, Active_Power);
                 }
                 if (active <= Internal_Max_Active)
                     Check_state(active, Crystal_Num);
@@ -91,12 +99,15 @@ namespace BO.Content.another.Magic.Magic_System
         }
         //允许玩家同时使用最多54个水晶，当然这个上限随便改，取决于mod之后的战力体系
         public Magic_Barrier_Crystal_In_Slots[] Magic_Slots = new Magic_Barrier_Crystal_In_Slots[54];
+        //这个类所属的玩家的索引，用于多人同步
+        public int Player_Master_Index;
         //初始化54个水晶槽
-        public Magic_Slot_Template()
+        public Magic_Slot_Template(int whoami)
         {
+            Player_Master_Index = whoami;
             for (int i = 0; i < Magic_Slots.Length; i++)
             {
-                Magic_Slots[i] = new Magic_Barrier_Crystal_In_Slots(i);
+                Magic_Slots[i] = new Magic_Barrier_Crystal_In_Slots(i, Player_Master_Index);
             }
         }
         //物品type转化射弹type
@@ -130,7 +141,7 @@ namespace BO.Content.another.Magic.Magic_System
         public int Using_Active()
         {
             int s = 0;
-            for (int i = 0; i < Magic_Slots.Length; i++) 
+            for (int i = 0; i < Magic_Slots.Length; i++)
             {
                 s += Magic_Slots[i].Active_Power;
             }
@@ -179,9 +190,9 @@ namespace BO.Content.another.Magic.Magic_System
         //减少一点活力值
         public void Remove_Active()
         {
-            if (Active > 0) 
+            if (Active > 0)
             {
-                if (Using_Active() > 0) 
+                if (Using_Active() > 0)
                 {
                     for (int i = 0; i < Magic_Slots.Length; i++)
                     {
@@ -224,7 +235,7 @@ namespace BO.Content.another.Magic.Magic_System
         public void Clear_Crystal()
         {
             //Main.NewText("i was cleared");
-            if (Magic_Slots[0].Magic_Barrier_Crystal_Type != 0) 
+            if (Magic_Slots[0].Magic_Barrier_Crystal_Type != 0)
                 for (int i = 0; i < Magic_Slots.Length; i++)
                 {
                     if (Magic_Slots[i].Magic_Barrier_Crystal_Type == 0)
@@ -285,11 +296,15 @@ namespace BO.Content.another.Magic.Magic_System
         //检测玩家上一帧所持物品,以及水晶转动角度
         public override void PreUpdate()
         {
-            if (Main.netMode == NetmodeID.Server) return;
+            if (Main.netMode == NetmodeID.Server || Player.whoAmI != Main.LocalPlayer.whoAmI) return;
             Hold_Item_Before = Player.HeldItem.type;
             if (Crystal_Angle < 360)
                 Crystal_Angle++;
             else Crystal_Angle = 0;
+            if (Main.time % 60 == 0)
+            {
+                Main.NewText("im " + Player.name + ",i have " + Magic_Slot.Active + " active");
+            }
         }
         //cd恢复
         public override void PostUpdateEquips()
@@ -307,6 +322,7 @@ namespace BO.Content.another.Magic.Magic_System
         //装备加成重置
         public override void ResetEffects()
         {
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) return;
             Magic_Slot.Max_Active = 2;
             Active_Add_Per_Frame = 100;
         }
@@ -330,19 +346,19 @@ namespace BO.Content.another.Magic.Magic_System
         {
             if (Main.LocalPlayer == null)
                 return;
-            Magic_Slot = new Magic_Slot_Template();
+            Magic_Slot = new Magic_Slot_Template(Player.whoAmI);
         }
         //保存这个玩家学习的水晶以及设置的水晶
         public override void SaveData(TagCompound tag)
         {
-            for (int i = 0; i < Has_Learned_Magic.Length; i++) 
+            for (int i = 0; i < Has_Learned_Magic.Length; i++)
             {
-                if (Has_Learned_Magic[i] == true) 
+                if (Has_Learned_Magic[i] == true)
                     ALL[i] = 1;
                 else
                     ALL[i] = 0;
             }
-            if (Is_In_Game)  
+            if (Is_In_Game)
             {
                 for (int i = 0; i < Magic_Slot.Magic_Slots.Length; i++)
                 {
@@ -350,7 +366,7 @@ namespace BO.Content.another.Magic.Magic_System
                 }
                 Is_In_Game = false;
             }
-            
+
             tag["ALL"] = ALL;
         }
         //加载这个玩家学习的水晶以及设置的水晶
@@ -402,13 +418,13 @@ namespace BO.Content.another.Magic.Magic_System
         }
         //设置水晶角度
         public static void Crystal_Angle_Set(int Angle)
-        { 
+        {
             Crystal_Angle = Angle;
         }
         //多人水晶角度同步
         public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
         {
-            if (Main.netMode == NetmodeID.Server && newPlayer) 
+            if (Main.netMode == NetmodeID.Server)
             {
                 ModPacket Crystal_Angle_To_Zero_Packet = Mod.GetPacket();
                 Crystal_Angle_To_Zero_Packet.Write("Crystal_Angle_To_Zero");
@@ -416,27 +432,9 @@ namespace BO.Content.another.Magic.Magic_System
             }
         }
     }
-    //全局水晶角度，主要用来多人同步水晶角度，我打算给每个玩家的水晶角度都弄一样了，稍微节省点性能，开发起来也容易
-    public class Crystal_Angle_set : ModSystem
-    {
-        public static int Crystal_Angle = 0;
-        public override void OnModLoad()
-        {
-        }
-        public override void NetSend(BinaryWriter writer)
-        {
-            if (Main.netMode != NetmodeID.Server) return;
-            writer.Write(Crystal_Angle);
-        }
-        public override void NetReceive(BinaryReader reader)
-        {
-            if (Main.netMode != NetmodeID.MultiplayerClient) return;
-            Magic_Slot_Sets.Crystal_Angle_Set(reader.ReadInt32());
-        }
-    }
     //魔法相关ui的那啥，对
     public class Magic_Slot_UI_System : ModSystem
-    { 
+    {
         public UserInterface Magic_Slot_UI_UserInterface;
         private GameTime BeforeTime;
         public Magic_Slot_UIState a;
@@ -445,7 +443,7 @@ namespace BO.Content.another.Magic.Magic_System
         {
             if (Main.netMode == NetmodeID.Server) return;
             Magic_Slot_UI_UserInterface = new UserInterface();
-            a=new Magic_Slot_UIState();
+            a = new Magic_Slot_UIState();
             a.Activate();
             Magic_Slot_UI_UserInterface.SetState(a);
             Create_Crystal = Mod.GetLocalization(nameof(Create_Crystal));
@@ -553,7 +551,7 @@ namespace BO.Content.another.Magic.Magic_System
             Nine_Crystal_Panel[6].Left.Set(Main.screenWidth * 0.45f - 84, 0f);
             Nine_Crystal_Panel[7].Left.Set(Main.screenWidth * 0.45f - 29, 0f);
             Nine_Crystal_Panel[8].Left.Set(Main.screenWidth * 0.45f + 26, 0f);
-            if (Main.mouseX > Main.screenWidth * 0.45f && Main.mouseX < Main.screenWidth * 0.45f + 35 && Main.mouseY > 15 && Main.mouseY < 66 && Main.LocalPlayer.itemAnimation == 0) 
+            if (Main.mouseX > Main.screenWidth * 0.45f && Main.mouseX < Main.screenWidth * 0.45f + 35 && Main.mouseY > 15 && Main.mouseY < 66 && Main.LocalPlayer.itemAnimation == 0)
             {
                 Main.LocalPlayer.mouseInterface = true;
             }
@@ -606,7 +604,7 @@ namespace BO.Content.another.Magic.Magic_System
     public class Single_Slot_UI : UIElement
     {
         Vector2 vector2 = new Vector2(0, 25);
-        Asset<Texture2D> tex1, tex2, Slotf,Slote;
+        Asset<Texture2D> tex1, tex2, Slotf, Slote;
         public override void OnInitialize()
         {
             ModContent.GetInstance<BO>().Logger.Info("Single_Slot_UI OnInitialize called");
@@ -627,7 +625,7 @@ namespace BO.Content.another.Magic.Magic_System
             else
                 spriteBatch.Draw(tex1.Value, vector2, null, Color.White, 0, Vector2.Zero, 0.6f, SpriteEffects.None, 0);
             if (Main.LocalPlayer.HeldItem.type == ItemID.None) return;
-            for (int i = 0, h = Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Magic_Ammo; i < Main.LocalPlayer.HeldItem.GetGlobalItem<Magic_Weapon_Sets>().Max_Magic_Ammo; i++, h--) 
+            for (int i = 0, h = Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Magic_Ammo; i < Main.LocalPlayer.HeldItem.GetGlobalItem<Magic_Weapon_Sets>().Max_Magic_Ammo; i++, h--)
             {
                 vector2.X = Main.screenWidth * 0.45f - 26 * (i + 1);
                 vector2.Y = 35;
@@ -645,8 +643,8 @@ namespace BO.Content.another.Magic.Magic_System
     //翻页按钮和水晶构建
     public class Crystal_Adding_UI : UIElement
     {
-        Asset<Texture2D> arrow1,arrow2,De1,De2;
-        Vector2 su = new Vector2(Main.screenWidth * 0.45f + 92f, 76),xu = new Vector2(Main.screenWidth * 0.45f + 92f,211);
+        Asset<Texture2D> arrow1, arrow2, De1, De2;
+        Vector2 su = new Vector2(Main.screenWidth * 0.45f + 92f, 76), xu = new Vector2(Main.screenWidth * 0.45f + 92f, 211);
         Vector2 de = new Vector2(Main.screenWidth * 0.45f + 92f, 161);
         //记录已学习水晶并用于翻页显示
         Item[,] Available_Crystal = new Item[6, 9];
@@ -717,7 +715,7 @@ namespace BO.Content.another.Magic.Magic_System
             if (Available_Crystal[Page, Index] != null)
             {
                 spriteBatch.Draw(TextureAssets.Item[Available_Crystal[Page, Index].type].Value, C, null, Color.White, 0, TextureAssets.Item[Available_Crystal[Page, Index].type].Size() * 0.5f, 1, SpriteEffects.None, 0);
-                if (Main.mouseX > L && Main.mouseX < L + 44 && Main.mouseY > U && Main.mouseY < U + 44 && Main.LocalPlayer.itemAnimation == 0) 
+                if (Main.mouseX > L && Main.mouseX < L + 44 && Main.mouseY > U && Main.mouseY < U + 44 && Main.LocalPlayer.itemAnimation == 0)
                 {
                     Main.HoverItem = Available_Crystal[Page, Index].Clone();
                     Main.hoverItemName = Main.HoverItem.Name;
@@ -738,7 +736,7 @@ namespace BO.Content.another.Magic.Magic_System
                 }
             }
             //下翻
-            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 205 && Main.mouseY < 250 && Main.LocalPlayer.itemAnimation == 0 && Page < 5) 
+            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 205 && Main.mouseY < 250 && Main.LocalPlayer.itemAnimation == 0 && Page < 5)
             {
                 if (Available_Crystal[Page + 1, 0] != null)
                 {
@@ -758,11 +756,11 @@ namespace BO.Content.another.Magic.Magic_System
             Remove_An_Crystal_Action();
         }
         //添加水晶的互动方法
-        public void Add_Crystal_UI(float L,float U,int Index)
+        public void Add_Crystal_UI(float L, float U, int Index)
         {
             if (Main.LocalPlayer == null)
                 return;
-            if (Main.mouseX > L && Main.mouseX < L + 44 && Main.mouseY > U && Main.mouseY < U + 44 && Main.LocalPlayer.itemAnimation == 0 && Available_Crystal[Page, Index] != null) 
+            if (Main.mouseX > L && Main.mouseX < L + 44 && Main.mouseY > U && Main.mouseY < U + 44 && Main.LocalPlayer.itemAnimation == 0 && Available_Crystal[Page, Index] != null)
             {
                 Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Add_Crystal(Magic_Slot_Template.Crystal_Convert_Projecile(Available_Crystal[Page, Index].type));
             }
@@ -785,7 +783,7 @@ namespace BO.Content.another.Magic.Magic_System
                 xu.X = Main.screenWidth * 0.45f + 92f;
                 C_0.X = Main.screenWidth * 0.45f - 63f;
                 de.X = Main.screenWidth * 0.45f + 92f;
-            }  
+            }
         }
         //读取玩家已学习水晶并放入二维数组
         public void Check_Learned_Crystal()
@@ -806,7 +804,7 @@ namespace BO.Content.another.Magic.Magic_System
                     Available_Crystal[i, j] = null;
         }
         //移除最右侧水晶的按钮绘制
-        public void Remove_An_Crystal_Draw(SpriteBatch spriteBatch,Vector2 C)
+        public void Remove_An_Crystal_Draw(SpriteBatch spriteBatch, Vector2 C)
         {
 
             if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 155 && Main.mouseY < 200 && Main.LocalPlayer.itemAnimation == 0)
@@ -820,7 +818,7 @@ namespace BO.Content.another.Magic.Magic_System
         //移除最右侧水晶的按钮互动
         public void Remove_An_Crystal_Action()
         {
-            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 155 && Main.mouseY < 200 && Main.LocalPlayer.itemAnimation == 0 && Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Max_Using_Active() > 0) 
+            if (Main.mouseX > Main.screenWidth * 0.45f + 85f && Main.mouseX < Main.screenWidth * 0.45f + 130f && Main.mouseY > 155 && Main.mouseY < 200 && Main.LocalPlayer.itemAnimation == 0 && Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Max_Using_Active() > 0)
             {
                 Main.LocalPlayer.GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Clear_Crystal();
                 SoundEngine.PlaySound(SoundID.MenuClose);
@@ -831,7 +829,7 @@ namespace BO.Content.another.Magic.Magic_System
     public class Crystal_Using_State : UIElement
     {
         //一种水晶一个变量
-        Asset<Texture2D>[] Crystal_Empty,Crystal_Book_Of_Leaves;
+        Asset<Texture2D>[] Crystal_Empty, Crystal_Book_Of_Leaves;
         float Draw_position = Main.screenWidth * 0.45f + 50f;
         //获取本地玩家的水晶用的变量
         Magic_Slot_Template My_Player_Magic_Slot;
@@ -859,11 +857,11 @@ namespace BO.Content.another.Magic.Magic_System
             Draw_position = Main.screenWidth * 0.45f + 50f;
             for (int i = 0; true; i++)
             {
-                for (int j = 0; j < My_Player_Magic_Slot.Magic_Slots[i].Active_Power; j++, Draw_position += 19f) 
+                for (int j = 0; j < My_Player_Magic_Slot.Magic_Slots[i].Active_Power; j++, Draw_position += 19f)
                 {
                     spriteBatch.Draw(Get_Texture(My_Player_Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type, 1), new Vector2(Draw_position, 50f), null, Color.White, 0f, Get_Texture(My_Player_Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type, 1).Size() * 0.5f, 1f, SpriteEffects.None, 0);
                 }
-                for (int j = 0; j < My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active - My_Player_Magic_Slot.Magic_Slots[i].Active_Power; j++, Draw_position += 19f) 
+                for (int j = 0; j < My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active - My_Player_Magic_Slot.Magic_Slots[i].Active_Power; j++, Draw_position += 19f)
                 {
                     spriteBatch.Draw(Get_Texture(My_Player_Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type, 0), new Vector2(Draw_position, 50f), null, Color.White, 0f, Get_Texture(My_Player_Magic_Slot.Magic_Slots[i].Magic_Barrier_Crystal_Type, 0).Size() * 0.5f, 1f, SpriteEffects.None, 0);
                 }
@@ -871,11 +869,11 @@ namespace BO.Content.another.Magic.Magic_System
                 {
                     spriteBatch.Draw(Get_Texture(My_Player_Magic_Slot.Magic_Slots[i + 1].Magic_Barrier_Crystal_Type, 1), new Vector2(Draw_position, 50f), null, Color.White, 0f, Get_Texture(My_Player_Magic_Slot.Magic_Slots[i + 1].Magic_Barrier_Crystal_Type, 1).Size() * 0.5f, 1f, SpriteEffects.None, 0);
                 }
-                for (int j = 0; j < My_Player_Magic_Slot.Max_Active - My_Player_Magic_Slot.Active - My_Player_Magic_Slot.Max_Using_Active(); j++, Draw_position += 19f) 
+                for (int j = 0; j < My_Player_Magic_Slot.Max_Active - My_Player_Magic_Slot.Active - My_Player_Magic_Slot.Max_Using_Active(); j++, Draw_position += 19f)
                 {
                     spriteBatch.Draw(Get_Texture(My_Player_Magic_Slot.Magic_Slots[i + 1].Magic_Barrier_Crystal_Type, 0), new Vector2(Draw_position, 50f), null, Color.White, 0f, Get_Texture(My_Player_Magic_Slot.Magic_Slots[i + 1].Magic_Barrier_Crystal_Type, 0).Size() * 0.5f, 1f, SpriteEffects.None, 0);
                 }
-                if (My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active > My_Player_Magic_Slot.Magic_Slots[i].Active_Power || My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active == 0)  
+                if (My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active > My_Player_Magic_Slot.Magic_Slots[i].Active_Power || My_Player_Magic_Slot.Magic_Slots[i].Internal_Max_Active == 0)
                 {
                     break;
                 }
@@ -883,7 +881,7 @@ namespace BO.Content.another.Magic.Magic_System
         }
         //ui贴图的话，我打算宽度强制限制在9，为了清晰度以及贴图大小匹配的话，那就是18，高度随意，可能要在竖直方向上加一点创意元素，不过都是要以中间为原点，而且必须为4的倍数，就算是2的倍数不是4的倍数也得留两个空凑一凑
         //初始化获取贴图
-        public Crystal_Using_State() 
+        public Crystal_Using_State()
         {
             Crystal_Empty =
             [
@@ -897,7 +895,7 @@ namespace BO.Content.another.Magic.Magic_System
             ];
         }
         //返回所需要的贴图，0代表无活力，非0代表有活力
-        public Texture2D Get_Texture(int crystal_Type, int active) 
+        public Texture2D Get_Texture(int crystal_Type, int active)
         {
             if (active != 0)
                 active = 1;
@@ -945,24 +943,19 @@ namespace BO.Content.another.Magic.Magic_System
     public abstract class Crystal_Projectile : ModProjectile
     {
         protected int Crystal_num = 0, Active_Power = 0;
-        public void Sync(int Crystal_num_S, int Active_Power_S)
+        public void Sync(int Crystal_num_S, int Active_Power_S,int Order)
         {
             Crystal_num = Crystal_num_S;
             Active_Power = Active_Power_S;
-            if (Main.netMode == NetmodeID.Server)
+            if (Main.netMode == NetmodeID.MultiplayerClient)
             {
-                NetMessage.SendData(MessageID.SyncProjectile, -1, -1, null, Projectile.whoAmI);
+                ModPacket Crystal_State_Sync_Packet = Mod.GetPacket();
+                Crystal_State_Sync_Packet.Write("Crystal_State_Sync_MCToS");
+                Crystal_State_Sync_Packet.Write(Active_Power);
+                Crystal_State_Sync_Packet.Write(Order);
+                Crystal_State_Sync_Packet.Write(Crystal_num);
+                Crystal_State_Sync_Packet.Send();
             }
-        }
-        public override void SendExtraAI(BinaryWriter writer)
-        {
-            writer.Write(Crystal_num);
-            writer.Write(Active_Power);
-        }
-        public override void ReceiveExtraAI(BinaryReader reader)
-        {
-            Crystal_num = reader.ReadInt32();
-            Active_Power = reader.ReadInt32();
         }
     }
 }

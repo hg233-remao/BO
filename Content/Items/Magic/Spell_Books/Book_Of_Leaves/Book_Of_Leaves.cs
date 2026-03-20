@@ -73,7 +73,8 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
             if (Son_Index == null && Active_Power != 0) 
                 if (Leaves_Cool_Down == 0)
                 {
-                    Son_Index = Projectile.NewProjectile(Projectile.GetSource_FromThis(), new Vector2(Projectile.Center.X, Projectile.Center.Y - Projectile.height / 2), Vector2.Zero, ModContent.ProjectileType<Book_Of_Leaves_Crystal_Leaves>(), 5, 1f, Projectile.owner, Projectile.whoAmI);
+                    if (Main.netMode != NetmodeID.Server && Projectile.owner == Main.myPlayer)
+                        Son_Index = Projectile.NewProjectile(Projectile.GetSource_FromThis(), new Vector2(Projectile.Center.X, Projectile.Center.Y - Projectile.height / 2), Vector2.Zero, ModContent.ProjectileType<Book_Of_Leaves_Crystal_Leaves>(), 5, 1f, Projectile.owner, Projectile.whoAmI);
                     if (Active_Power == 2)
                         Leaves_Cool_Down = 70;
                     if (Active_Power == 1)

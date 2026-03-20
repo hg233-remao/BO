@@ -15,6 +15,7 @@ using Terraria.Chat;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace BO
 {
@@ -49,13 +50,15 @@ namespace BO
                 {
                     Magic_Slot_Sets.Crystal_Angle_Set(0);
                 }
-                /*if (a == "SpearSlotSyncTMC")∞°∞°∞°Œ“–¡–¡ø‡ø‡–¥µƒÕ¨≤Ω∞°
+                if (a == "Crystal_State_Sync_SToMC")
                 {
-                    int playerindex = reader.ReadInt32(), b = reader.ReadInt32(), c = reader.ReadInt32(), d = reader.ReadInt32();
-                    Main.player[playerindex].GetModPlayer<setspearslot>().c.type = b;
-                    Main.player[playerindex].GetModPlayer<setspearslot>().c.prefix = c;
-                    Main.player[playerindex].GetModPlayer<setspearslot>().c.stack = d;
-                }*/
+                    int Active_Power = reader.ReadInt32();
+                    int Order = reader.ReadInt32();
+                    int Crystal_Num = reader.ReadInt32();
+                    int Index = reader.ReadInt32();
+                    Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Active_Power = Active_Power;
+                    Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Check_state(0, Crystal_Num);
+                }
             }
             if (Main.netMode == NetmodeID.Server)
             {
@@ -84,6 +87,21 @@ namespace BO
                     Living_Wooden_Sword_p1SyncToMC.Write(b);
                     Living_Wooden_Sword_p1SyncToMC.Write(c);
                     Living_Wooden_Sword_p1SyncToMC.Send();
+                }
+                if (a == "Crystal_State_Sync_MCToS")
+                {
+                    int Active_Power = reader.ReadInt32();
+                    int Order = reader.ReadInt32();
+                    int Crystal_Num=reader.ReadInt32();
+                    Main.player[whoAmI].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Active_Power = Active_Power;
+                    Main.player[whoAmI].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Check_state(0, Crystal_Num);
+                    ModPacket Crystal_State_Sync_SToMC_Packet = GetPacket();
+                    Crystal_State_Sync_SToMC_Packet.Write("Crystal_State_Sync_SToMC");
+                    Crystal_State_Sync_SToMC_Packet.Write(Active_Power);
+                    Crystal_State_Sync_SToMC_Packet.Write(Order);
+                    Crystal_State_Sync_SToMC_Packet.Write(Crystal_Num);
+                    Crystal_State_Sync_SToMC_Packet.Write(whoAmI);
+                    Crystal_State_Sync_SToMC_Packet.Send(ignoreClient: whoAmI);
                 }
             }
         }
