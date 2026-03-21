@@ -24,6 +24,7 @@ namespace BO
 	{
         public override void HandlePacket(BinaryReader reader, int whoAmI)
         {
+            Crystal_Projectile cry;
             if (Main.netMode == NetmodeID.MultiplayerClient) 
             {
                 string a = reader.ReadString();
@@ -62,14 +63,14 @@ namespace BO
                 }
                 if (a == "Crystal_State_Sync_SToMC")
                 {
+                    int Order = reader.ReadInt32();
                     int Projectile_Type = reader.ReadInt32();
                     int Active_Power = reader.ReadInt32();
-                    int Order = reader.ReadInt32();
-                    int Crystal_Num = reader.ReadInt32();
                     int Index = reader.ReadInt32();
                     Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Magic_Barrier_Crystal_Type = Projectile_Type;
                     Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Active_Power = Active_Power;
-                    Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Check_state(0, Crystal_Num);
+                    cry = Main.projectile[(int)Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index].ModProjectile as Crystal_Projectile;
+                    cry.Set(Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Crystal_Num(), Active_Power);
                 }
             }
             if (Main.netMode == NetmodeID.Server)
@@ -102,16 +103,14 @@ namespace BO
                 }
                 if (a == "Crystal_State_Sync_MCToS")
                 {
+                    int Order = reader.ReadInt32();
                     int Projectile_Type = reader.ReadInt32();
                     int Active_Power = reader.ReadInt32();
-                    int Order = reader.ReadInt32();
-                    int Crystal_Num = reader.ReadInt32();
                     ModPacket Crystal_State_Sync_SToMC_Packet = GetPacket();
                     Crystal_State_Sync_SToMC_Packet.Write("Crystal_State_Sync_SToMC");
+                    Crystal_State_Sync_SToMC_Packet.Write(Order);
                     Crystal_State_Sync_SToMC_Packet.Write(Projectile_Type);
                     Crystal_State_Sync_SToMC_Packet.Write(Active_Power);
-                    Crystal_State_Sync_SToMC_Packet.Write(Order);
-                    Crystal_State_Sync_SToMC_Packet.Write(Crystal_Num);
                     Crystal_State_Sync_SToMC_Packet.Write(whoAmI);
                     Crystal_State_Sync_SToMC_Packet.Send(ignoreClient: whoAmI);
                 }

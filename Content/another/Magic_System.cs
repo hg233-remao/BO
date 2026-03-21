@@ -59,23 +59,21 @@ namespace BO.Content.another.Magic.Magic_System
             //检测一次自身状态，一般在自己的活力值改变时使用，因此我将改变水晶活力值的地方集成在这个方法上了
             public void Check_state(int active, int Crystal_Num)
             {
-                if (Main.netMode == NetmodeID.Server)
+                if (Main.netMode == NetmodeID.Server || Main.myPlayer != Player_Master_Index) 
                     return;
                 Crystal_Projectile Crystal_Projectile_C;
                 Active_Power += active;
+                //for (; Main.myPlayer != Player_Master_Index && Projectile_Index == null;) ;
                 if (Magic_Barrier_Crystal_Type != 0)
                 {
                     Main.NewText(Player_Master_Index + $" order:{Order} active:{Active_Power}\n\\\\\\");
                     //气死我了，写到这里发现要多人同步的话还得写个水晶弹幕的基类
-                        Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
-                        Crystal_Projectile_C.Sync(Crystal_Num, Active_Power, Order);
-                    //Main.NewText(Player_Master_Index + $" order:{Order} active:{Active_Power}");
+                    Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
+                    Crystal_Projectile_C.Set(Crystal_Num, Active_Power);
                 }
-                //操你妈傻逼玩意报你妈错呢！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
-                else if (Projectile_Index != null)
+                else if (Projectile_Index != null && Main.myPlayer == Player_Master_Index) 
                 {
-                    int p = Projectile_Index.Value;
-                    Main.projectile[p].Kill();
+                    Main.projectile[(int)Projectile_Index].Kill();
                     Projectile_Index = null;
                 }
             }
@@ -397,7 +395,7 @@ namespace BO.Content.another.Magic.Magic_System
             {
                 Magic_Slot = new Magic_Slot_Template(Player.whoAmI);
             }
-            if (Main.LocalPlayer.whoAmI != Player.whoAmI)
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI || Main.netMode == NetmodeID.Server) 
                 return;
             Is_In_Game = true;
             //我咋感觉这样不大行。。。试了试还真行
@@ -953,13 +951,26 @@ namespace BO.Content.another.Magic.Magic_System
     public abstract class Crystal_Projectile : ModProjectile
     {
         protected int Crystal_num = 0, Active_Power = 0, Order = -1;
+        protected bool Has_Once = false;
+        //用于当第一次在其他客户端第一次生成时执行一次，多人同步专用，覆写用，真正调用时是另一个
+        public abstract void Only_Once_On_Others_Content();
+        //这个B养的onspawn好像只在本地执行啊，那tmod你他妈只给newprojectile是不是有点恶心人了
         public override void OnSpawn(IEntitySource source)
         {
             Order = (int)Projectile.ai[0];
-            if (Projectile.owner != Main.myPlayer && Main.netMode != NetmodeID.Server) 
-                Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index = Projectile.whoAmI;
+            //Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index = Projectile.whoAmI;
         }
-        public void Sync(int Crystal_num_S, int Active_Power_S,int Order)
+        //用于当第一次在其他客户端第一次生成时执行一次，多人同步专用
+        public void Only_Once_On_Others()
+        {
+            if (Has_Once == false && Main.myPlayer != Projectile.owner && Main.netMode != NetmodeID.Server)  
+            {
+                Order = (int)Projectile.ai[0];
+                Has_Once = true;
+                Only_Once_On_Others_Content();
+            }
+        }
+        public void Set(int Crystal_num_S, int Active_Power_S)
         {
             Crystal_num = Crystal_num_S;
             Active_Power = Active_Power_S;
@@ -967,11 +978,13 @@ namespace BO.Content.another.Magic.Magic_System
             {
                 ModPacket Crystal_State_Sync_Packet = Mod.GetPacket();
                 Crystal_State_Sync_Packet.Write("Crystal_State_Sync_MCToS");
+                Crystal_State_Sync_Packet.Write(Projectile.ai[0]);
                 Crystal_State_Sync_Packet.Write(Projectile.type);
                 Crystal_State_Sync_Packet.Write(Active_Power);
-                Crystal_State_Sync_Packet.Write(Order);
-                Crystal_State_Sync_Packet.Write(Crystal_num);
                 Crystal_State_Sync_Packet.Send();
+            }
+            if (Main.netMode == NetmodeID.MultiplayerClient && Projectile.owner != Main.myPlayer)
+            { 
             }
         }
     }

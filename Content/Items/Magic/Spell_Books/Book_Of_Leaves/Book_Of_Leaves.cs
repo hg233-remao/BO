@@ -60,9 +60,7 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
         }
         public override void AI()
         {
-            if (Main.netMode != NetmodeID.Server)
-                Main.NewText(Main.player[Projectile.owner].name);
-                //Main.NewText($"{Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index}  {Projectile.whoAmI}");
+            Only_Once_On_Others();
             Projectile.timeLeft = 60;
             if (Active_Power == 0)
                 Projectile.frame = 0;
@@ -99,8 +97,17 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
                     Leaves_Cool_Down = 150;
             }
         }
+        public override void Only_Once_On_Others_Content()
+        {
+            Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index = Projectile.whoAmI;
+        }
         public override void OnKill(int timeLeft)
         {
+            if (Main.myPlayer != Projectile.owner && Main.netMode != NetmodeID.Server) 
+            {
+                Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Magic_Barrier_Crystal_Type = 0;
+                Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Internal_Max_Active = 0;
+            }
             if (Son_Index != null)
             {
                 Main.projectile[(int)Son_Index].Kill();
