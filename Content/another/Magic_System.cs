@@ -13,6 +13,7 @@ using BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves;
 using BO.Content.Items.Magic.Wands.Wand_Of_Sparking;
 using Humanizer;
 using JetBrains.Annotations;
+using Microsoft.Build.Execution;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using rail;
@@ -48,7 +49,7 @@ namespace BO.Content.another.Magic.Magic_System
             //这个槽绑定的水晶的索引
             public int? Projectile_Index = null;
             //这个槽所属玩家，用于多人同步
-            public int Player_Master_Index;
+            public int? Player_Master_Index = null;
             //初始化时告诉这个槽它的顺序
             public Magic_Barrier_Crystal_In_Slots(int order,int whoami)
             {
@@ -58,19 +59,23 @@ namespace BO.Content.another.Magic.Magic_System
             //检测一次自身状态，一般在自己的活力值改变时使用，因此我将改变水晶活力值的地方集成在这个方法上了
             public void Check_state(int active, int Crystal_Num)
             {
-                if (Main.netMode != NetmodeID.Server && Main.myPlayer == Player_Master_Index)
+                if (Main.netMode == NetmodeID.Server)
                     return;
                 Crystal_Projectile Crystal_Projectile_C;
                 Active_Power += active;
                 if (Magic_Barrier_Crystal_Type != 0)
                 {
+                    Main.NewText(Player_Master_Index + $" order:{Order} active:{Active_Power}\n\\\\\\");
                     //气死我了，写到这里发现要多人同步的话还得写个水晶弹幕的基类
-                    Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
-                    Crystal_Projectile_C.Sync(Crystal_Num, Active_Power, Order);
+                        Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
+                        Crystal_Projectile_C.Sync(Crystal_Num, Active_Power, Order);
+                    //Main.NewText(Player_Master_Index + $" order:{Order} active:{Active_Power}");
                 }
+                //操你妈傻逼玩意报你妈错呢！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
                 else if (Projectile_Index != null)
                 {
-                    Main.projectile[(int)Projectile_Index].Kill();
+                    int p = Projectile_Index.Value;
+                    Main.projectile[p].Kill();
                     Projectile_Index = null;
                 }
             }
@@ -80,10 +85,14 @@ namespace BO.Content.another.Magic.Magic_System
             {
                 Magic_Barrier_Crystal_Type = type;
                 Internal_Max_Active = Crystal_Whose_Space(type);
+                //Main.NewText(Player_Master_Index);
+                //Main.NewText(Main.myPlayer + "\n\\\\\\");
                 if (Magic_Barrier_Crystal_Type != 0)
                 {
                     if (Main.netMode != NetmodeID.Server && Main.myPlayer == Player_Master_Index)
+                    {
                         Projectile_Index = Projectile.NewProjectile(Main.LocalPlayer.GetSource_FromThis(), Main.LocalPlayer.Center, Vector2.Zero, type, 1, 1, Main.myPlayer, Order, Crystal_Num, Active_Power);
+                    }
                 }
                 if (active <= Internal_Max_Active)
                     Check_state(active, Crystal_Num);
@@ -100,14 +109,14 @@ namespace BO.Content.another.Magic.Magic_System
         //允许玩家同时使用最多54个水晶，当然这个上限随便改，取决于mod之后的战力体系
         public Magic_Barrier_Crystal_In_Slots[] Magic_Slots = new Magic_Barrier_Crystal_In_Slots[54];
         //这个类所属的玩家的索引，用于多人同步
-        public int Player_Master_Index;
+        public int? Player_Master_Index = null;
         //初始化54个水晶槽
         public Magic_Slot_Template(int whoami)
         {
             Player_Master_Index = whoami;
             for (int i = 0; i < Magic_Slots.Length; i++)
             {
-                Magic_Slots[i] = new Magic_Barrier_Crystal_In_Slots(i, Player_Master_Index);
+                Magic_Slots[i] = new Magic_Barrier_Crystal_In_Slots(i, (int)Player_Master_Index);
             }
         }
         //物品type转化射弹type
@@ -270,7 +279,7 @@ namespace BO.Content.another.Magic.Magic_System
         //保存加载用的中间变量
         int[] ALL = new int[108];
         //检查玩家是否在游戏中，因为总是出现奇怪的数组重置现象，所以只能另寻它径
-        bool Is_In_Game = false;
+        public bool Is_In_Game = false;
         //将学习水晶的数组序列与水晶介绍物品的type映射起来
         public static int Index_To_Crystal_Item_Type(int Index)
         {
@@ -301,10 +310,6 @@ namespace BO.Content.another.Magic.Magic_System
             if (Crystal_Angle < 360)
                 Crystal_Angle++;
             else Crystal_Angle = 0;
-            if (Main.time % 60 == 0)
-            {
-                Main.NewText("im " + Player.name + ",i have " + Magic_Slot.Active + " active");
-            }
         }
         //cd恢复
         public override void PostUpdateEquips()
@@ -344,8 +349,7 @@ namespace BO.Content.another.Magic.Magic_System
         //初始化
         public override void Initialize()
         {
-            if (Main.LocalPlayer == null)
-                return;
+            if (Main.netMode == NetmodeID.Server) return;
             Magic_Slot = new Magic_Slot_Template(Player.whoAmI);
         }
         //保存这个玩家学习的水晶以及设置的水晶
@@ -366,7 +370,6 @@ namespace BO.Content.another.Magic.Magic_System
                 }
                 Is_In_Game = false;
             }
-
             tag["ALL"] = ALL;
         }
         //加载这个玩家学习的水晶以及设置的水晶
@@ -389,7 +392,13 @@ namespace BO.Content.another.Magic.Magic_System
         //清空ui状态,以及防止一些ui空引用行为,以及进入游戏后读取水晶设置状态
         public override void OnEnterWorld()
         {
-            if (Main.netMode == NetmodeID.Server) return;
+            //无奈之举，不这样做多人同步和读档超难处理
+            if (Main.netMode != NetmodeID.Server && Main.myPlayer == Player.whoAmI) 
+            {
+                Magic_Slot = new Magic_Slot_Template(Player.whoAmI);
+            }
+            if (Main.LocalPlayer.whoAmI != Player.whoAmI)
+                return;
             Is_In_Game = true;
             //我咋感觉这样不大行。。。试了试还真行
             ModContent.GetInstance<Magic_Slot_UI_System>().a.Clear_Learned_Crystal();
@@ -421,13 +430,14 @@ namespace BO.Content.another.Magic.Magic_System
         {
             Crystal_Angle = Angle;
         }
-        //多人水晶角度同步
+        //多人水晶角度同步,以及一些初始化同步
         public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
         {
-            if (Main.netMode == NetmodeID.Server)
+            if (Main.netMode == NetmodeID.Server)  
             {
                 ModPacket Crystal_Angle_To_Zero_Packet = Mod.GetPacket();
                 Crystal_Angle_To_Zero_Packet.Write("Crystal_Angle_To_Zero");
+                Crystal_Angle_To_Zero_Packet.Write(fromWho);
                 Crystal_Angle_To_Zero_Packet.Send();
             }
         }
@@ -942,15 +952,22 @@ namespace BO.Content.another.Magic.Magic_System
     //便于进行多人同步的水晶弹幕基类，以后写水晶弹幕必须继承这个，否则魔力系统绝对会报错，还有就是这里还得多写点多人同步的代码
     public abstract class Crystal_Projectile : ModProjectile
     {
-        protected int Crystal_num = 0, Active_Power = 0;
+        protected int Crystal_num = 0, Active_Power = 0, Order = -1;
+        public override void OnSpawn(IEntitySource source)
+        {
+            Order = (int)Projectile.ai[0];
+            if (Projectile.owner != Main.myPlayer && Main.netMode != NetmodeID.Server) 
+                Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index = Projectile.whoAmI;
+        }
         public void Sync(int Crystal_num_S, int Active_Power_S,int Order)
         {
             Crystal_num = Crystal_num_S;
             Active_Power = Active_Power_S;
-            if (Main.netMode == NetmodeID.MultiplayerClient)
+            if (Main.netMode == NetmodeID.MultiplayerClient && Projectile.owner == Main.myPlayer) 
             {
                 ModPacket Crystal_State_Sync_Packet = Mod.GetPacket();
                 Crystal_State_Sync_Packet.Write("Crystal_State_Sync_MCToS");
+                Crystal_State_Sync_Packet.Write(Projectile.type);
                 Crystal_State_Sync_Packet.Write(Active_Power);
                 Crystal_State_Sync_Packet.Write(Order);
                 Crystal_State_Sync_Packet.Write(Crystal_num);

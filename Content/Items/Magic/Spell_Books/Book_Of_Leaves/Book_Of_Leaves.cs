@@ -40,7 +40,7 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
     }
     public class Book_Of_Leaves_Crystal : Crystal_Projectile
     {
-        int Leaves_Cool_Down = 0;
+        int Leaves_Cool_Down = 150;
         public int? Son_Index = null;
         Vector2 Create_position;
         public override void SetDefaults()
@@ -60,6 +60,9 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
         }
         public override void AI()
         {
+            if (Main.netMode != NetmodeID.Server)
+                Main.NewText(Main.player[Projectile.owner].name);
+                //Main.NewText($"{Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index}  {Projectile.whoAmI}");
             Projectile.timeLeft = 60;
             if (Active_Power == 0)
                 Projectile.frame = 0;
@@ -73,8 +76,8 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
             if (Son_Index == null && Active_Power != 0) 
                 if (Leaves_Cool_Down == 0)
                 {
-                    if (Main.netMode != NetmodeID.Server && Projectile.owner == Main.myPlayer)
-                        Son_Index = Projectile.NewProjectile(Projectile.GetSource_FromThis(), new Vector2(Projectile.Center.X, Projectile.Center.Y - Projectile.height / 2), Vector2.Zero, ModContent.ProjectileType<Book_Of_Leaves_Crystal_Leaves>(), 5, 1f, Projectile.owner, Projectile.whoAmI);
+                    //if (Main.netMode != NetmodeID.Server && Projectile.owner == Main.myPlayer)
+                    //    Son_Index = Projectile.NewProjectile(Projectile.GetSource_FromThis(), new Vector2(Projectile.Center.X, Projectile.Center.Y - Projectile.height / 2), Vector2.Zero, ModContent.ProjectileType<Book_Of_Leaves_Crystal_Leaves>(), 5, 1f, Projectile.owner, Projectile.whoAmI);
                     if (Active_Power == 2)
                         Leaves_Cool_Down = 70;
                     if (Active_Power == 1)
@@ -103,7 +106,6 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
                 Main.projectile[(int)Son_Index].Kill();
             }
         }
-
     }
     public class Book_Of_Leaves_Crystal_Leaves : BO_Projectile
     {
@@ -135,7 +137,8 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
         }
         public override void AI()
         {
-            Projectile.frame = Projectile.frameCounter % 24 / 6 - 1;
+            if (Main.netMode != NetmodeID.Server)
+                Projectile.frame = Projectile.frameCounter % 24 / 6 - 1;
             if (Projectile.frameCounter == 0)
                 Projectile.frameCounter = 80;
             else
@@ -152,7 +155,10 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
             else
             {
                 if (Parent_Projectile == null)
+                {
                     Projectile.Kill();
+                    Main.NewText("i dont have mom");
+                }
                 Projectile.timeLeft = 80;
                 Projectile.position.X = Parent_Projectile.Projectile.position.X - Projectile.width / 2 + (float)Math.Cos(Projectile.frameCounter * 9 / 2 * Math.PI / 180) * 20f;
                 Projectile.position.Y = Parent_Projectile.Projectile.position.Y - Projectile.height / 2 + (float)Math.Sin(Projectile.frameCounter * 9 / 2 * Math.PI / 180) * 20f;

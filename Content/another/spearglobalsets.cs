@@ -23,6 +23,7 @@ using System.Net.Mail;
 using BO.Content.Items.Swords.Living_Wooden_sword;
 using Terraria.Audio;
 using ReLogic.Content;
+using Terraria.Chat;
 namespace BO.Content.another.spearglobalsets
 {
     public class spearglobalsets : GlobalItem

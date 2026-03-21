@@ -48,14 +48,26 @@ namespace BO
                 }
                 if (a == "Crystal_Angle_To_Zero")
                 {
+                    int Index = reader.ReadInt32();
+                    if (Index == -1)
+                        return;
+                    Main.NewText($"myplayer={Main.myPlayer}  index={Index}");
+                    if (Main.myPlayer != Index)
+                    {
+                        Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot = new Magic_Slot_Template(Index);
+                        if (Main.player[Index] != null)
+                            Main.NewText($"create a magic slot for player{Index}");
+                    }
                     Magic_Slot_Sets.Crystal_Angle_Set(0);
                 }
                 if (a == "Crystal_State_Sync_SToMC")
                 {
+                    int Projectile_Type = reader.ReadInt32();
                     int Active_Power = reader.ReadInt32();
                     int Order = reader.ReadInt32();
                     int Crystal_Num = reader.ReadInt32();
                     int Index = reader.ReadInt32();
+                    Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Magic_Barrier_Crystal_Type = Projectile_Type;
                     Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Active_Power = Active_Power;
                     Main.player[Index].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Check_state(0, Crystal_Num);
                 }
@@ -90,13 +102,13 @@ namespace BO
                 }
                 if (a == "Crystal_State_Sync_MCToS")
                 {
+                    int Projectile_Type = reader.ReadInt32();
                     int Active_Power = reader.ReadInt32();
                     int Order = reader.ReadInt32();
-                    int Crystal_Num=reader.ReadInt32();
-                    Main.player[whoAmI].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Active_Power = Active_Power;
-                    Main.player[whoAmI].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Check_state(0, Crystal_Num);
+                    int Crystal_Num = reader.ReadInt32();
                     ModPacket Crystal_State_Sync_SToMC_Packet = GetPacket();
                     Crystal_State_Sync_SToMC_Packet.Write("Crystal_State_Sync_SToMC");
+                    Crystal_State_Sync_SToMC_Packet.Write(Projectile_Type);
                     Crystal_State_Sync_SToMC_Packet.Write(Active_Power);
                     Crystal_State_Sync_SToMC_Packet.Write(Order);
                     Crystal_State_Sync_SToMC_Packet.Write(Crystal_Num);
