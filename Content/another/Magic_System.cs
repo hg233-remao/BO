@@ -67,7 +67,7 @@ namespace BO.Content.another.Magic.Magic_System
                 //for (; Main.myPlayer != Player_Master_Index && Projectile_Index == null;) ;
                 if (Magic_Barrier_Crystal_Type != 0)
                 {
-                    Main.NewText(Player_Master_Index + $" order:{Order} active:{Active_Power}\n\\\\\\");
+                    //Main.NewText(Player_Master_Index + $" order:{Order} active:{Active_Power}\n\\\\\\");
                     //气死我了，写到这里发现要多人同步的话还得写个水晶弹幕的基类
                     Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
                     Crystal_Projectile_C.Set(Crystal_Num, Active_Power, IsNew);
