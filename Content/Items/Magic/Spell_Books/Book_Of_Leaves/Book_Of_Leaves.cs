@@ -68,14 +68,22 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
                 Projectile.frame = 1;
             if (Active_Power == 2)
                 Projectile.frame = 2;
-            Projectile.position.X = Main.player[Projectile.owner].Center.X + (float)Math.Cos(Magic_Slot_Sets.Crystal_Angle * Math.PI / 180) * 40f - 1;
-            //完美解决了单格障碍物离散绘制的问题，我太聪明了和额呵呵呵呵呵呵呵呵呵
-            Projectile.position.Y = Main.player[Projectile.owner].Center.Y + Main.player[Projectile.owner].gfxOffY + (float)Math.Sin(Magic_Slot_Sets.Crystal_Angle * Math.PI / 180) * 40f;
-            if (Son_Index == null && Active_Power != 0) 
+            if (Main.netMode != NetmodeID.Server)
+            {
+                int cn = Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Crystal_Num();
+                if (cn != 0)
+                {
+                    Projectile.position.X = Main.player[Projectile.owner].Center.X + (float)Math.Cos((Magic_Slot_Sets.Crystal_Angle + 360 / cn * Order) * Math.PI / 180) * 40f - 1;
+                    //完美解决了单格障碍物离散绘制的问题，我太聪明了和额呵呵呵呵呵呵呵呵呵
+                    Projectile.position.Y = Main.player[Projectile.owner].Center.Y + Main.player[Projectile.owner].gfxOffY + (float)Math.Sin((Magic_Slot_Sets.Crystal_Angle + 360 / cn * Order) * Math.PI / 180) * 40f;
+                }
+            }
+            if (Main.netMode == NetmodeID.Server || Projectile.owner != Main.myPlayer) return;
+            if (Son_Index == null && Active_Power != 0)
+            {
                 if (Leaves_Cool_Down == 0)
                 {
-                    //if (Main.netMode != NetmodeID.Server && Projectile.owner == Main.myPlayer)
-                    //    Son_Index = Projectile.NewProjectile(Projectile.GetSource_FromThis(), new Vector2(Projectile.Center.X, Projectile.Center.Y - Projectile.height / 2), Vector2.Zero, ModContent.ProjectileType<Book_Of_Leaves_Crystal_Leaves>(), 5, 1f, Projectile.owner, Projectile.whoAmI);
+                    Son_Index = Projectile.NewProjectile(Projectile.GetSource_FromThis(), new Vector2(Projectile.Center.X, Projectile.Center.Y - Projectile.height / 2), Vector2.Zero, ModContent.ProjectileType<Book_Of_Leaves_Crystal_Leaves>(), 5, 1f, Projectile.owner, Projectile.whoAmI, Order);
                     if (Active_Power == 2)
                         Leaves_Cool_Down = 70;
                     if (Active_Power == 1)
@@ -87,6 +95,7 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
                 {
                     Leaves_Cool_Down--;
                 }
+            }
             else
             {
                 if (Active_Power == 2)
@@ -99,7 +108,6 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
         }
         public override void Only_Once_On_Others_Content()
         {
-            Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index = Projectile.whoAmI;
         }
         public override void OnKill(int timeLeft)
         {
@@ -114,6 +122,7 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
             }
         }
     }
+    //不过子弹幕的逻辑实现就更复杂了，基本上只能对症下药，没办法做个统一的同步。
     public class Book_Of_Leaves_Crystal_Leaves : BO_Projectile
     {
         Vector2[] a = new Vector2[5];
@@ -161,14 +170,22 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
             }
             else
             {
-                if (Parent_Projectile == null)
+                if (Parent_Projectile == null && Main.myPlayer == Projectile.owner && Main.netMode != NetmodeID.Server)
                 {
                     Projectile.Kill();
-                    Main.NewText("i dont have mom");
                 }
                 Projectile.timeLeft = 80;
-                Projectile.position.X = Parent_Projectile.Projectile.position.X - Projectile.width / 2 + (float)Math.Cos(Projectile.frameCounter * 9 / 2 * Math.PI / 180) * 20f;
-                Projectile.position.Y = Parent_Projectile.Projectile.position.Y - Projectile.height / 2 + (float)Math.Sin(Projectile.frameCounter * 9 / 2 * Math.PI / 180) * 20f;
+                //写完了发现无论多人单人好像只用这个就可以了。。
+
+                if (Main.netMode != NetmodeID.Server)
+                {
+                    int cn = Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Crystal_Num();
+                    if (cn != 0)
+                    {
+                        Projectile.position.X = Main.player[Projectile.owner].Center.X + (float)Math.Cos((Magic_Slot_Sets.Crystal_Angle + 360 / cn * Projectile.ai[1]) * Math.PI / 180) * 40f - 1 - Projectile.width / 2 + (float)Math.Cos(Projectile.frameCounter * 9 / 2 * Math.PI / 180) * 20f;
+                        Projectile.position.Y = Main.player[Projectile.owner].Center.Y + Main.player[Projectile.owner].gfxOffY + (float)Math.Sin((Magic_Slot_Sets.Crystal_Angle + 360 / cn * Projectile.ai[1]) * Math.PI / 180) * 40f - Projectile.height / 2 + (float)Math.Sin(Projectile.frameCounter * 9 / 2 * Math.PI / 180) * 20f;
+                    }
+                }
                 Projectile.velocity.X = -(float)Math.Sin(Projectile.frameCounter * 9 / 2 * Math.PI / 180) * 0.01f;
                 Projectile.velocity.Y = (float)Math.Cos(Projectile.frameCounter * 9 / 2 * Math.PI / 180) * 0.01f;
                 Enemy = Find_Closest_Enemy_In_Distance(230);
@@ -176,6 +193,8 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
                 {
                     Projectile.velocity = Vector2.Normalize(Enemy.Center - Projectile.Center) * 7f;
                     Chasing = true;
+                    if (Main.myPlayer != Projectile.owner || Main.netMode == NetmodeID.Server)
+                        return;
                     Parent_Projectile.Son_Index = null;
                 }
             }
@@ -191,6 +210,8 @@ namespace BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves
             SoundEngine.PlaySound(SoundID.Grass, Projectile.Center);
             for (int i = 0; i < 3; i++)
                 Dust.NewDust(Projectile.position, Projectile.width, Projectile.height, DustID.GrassBlades);
+            if (Main.myPlayer != Projectile.owner || Main.netMode == NetmodeID.Server)
+                return;
             if (Parent_Projectile.Son_Index == Projectile.whoAmI)
                 Parent_Projectile.Son_Index = null;
         }

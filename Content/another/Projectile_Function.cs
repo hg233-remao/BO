@@ -6,7 +6,7 @@ namespace BO.Content.another.Projectile_Function
 {
     public abstract class BO_Projectile : ModProjectile
     {
-        //通用函数，用来定位radius范围内距离最近的npc
+        //通用函数，用来定位radius范围内距离最近的npc,以后所有的弹幕尽量保证都继承这个类
         public NPC Find_Closest_Enemy_In_Distance(float radius)
         {
             NPC Closest_Enemy = null;

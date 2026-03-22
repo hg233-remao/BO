@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using BO.Content.another.Projectile_Function;
 using BO.Content.another.spearglobalsets;
 using BO.Content.Items.Magic.Spell_Books.Book_Of_Leaves;
 using BO.Content.Items.Magic.Wands.Wand_Of_Sparking;
@@ -57,7 +58,7 @@ namespace BO.Content.another.Magic.Magic_System
                 Player_Master_Index = whoami;
             }
             //检测一次自身状态，一般在自己的活力值改变时使用，因此我将改变水晶活力值的地方集成在这个方法上了
-            public void Check_state(int active, int Crystal_Num)
+            public void Check_state(int active, int Crystal_Num, bool IsNew = false)
             {
                 if (Main.netMode == NetmodeID.Server || Main.myPlayer != Player_Master_Index) 
                     return;
@@ -69,7 +70,7 @@ namespace BO.Content.another.Magic.Magic_System
                     Main.NewText(Player_Master_Index + $" order:{Order} active:{Active_Power}\n\\\\\\");
                     //气死我了，写到这里发现要多人同步的话还得写个水晶弹幕的基类
                     Crystal_Projectile_C = Main.projectile[(int)Projectile_Index].ModProjectile as Crystal_Projectile;
-                    Crystal_Projectile_C.Set(Crystal_Num, Active_Power);
+                    Crystal_Projectile_C.Set(Crystal_Num, Active_Power, IsNew);
                 }
                 else if (Projectile_Index != null && Main.myPlayer == Player_Master_Index) 
                 {
@@ -93,9 +94,9 @@ namespace BO.Content.another.Magic.Magic_System
                     }
                 }
                 if (active <= Internal_Max_Active)
-                    Check_state(active, Crystal_Num);
+                    Check_state(active, Crystal_Num, true);
                 else
-                    Check_state(Internal_Max_Active, Crystal_Num);
+                    Check_state(Internal_Max_Active, Crystal_Num, true);
             }
             public void Clear_Crystal(int Crystal_Num)
             {
@@ -948,7 +949,7 @@ namespace BO.Content.another.Magic.Magic_System
         }
     }
     //便于进行多人同步的水晶弹幕基类，以后写水晶弹幕必须继承这个，否则魔力系统绝对会报错，还有就是这里还得多写点多人同步的代码
-    public abstract class Crystal_Projectile : ModProjectile
+    public abstract class Crystal_Projectile : BO_Projectile
     {
         protected int Crystal_num = 0, Active_Power = 0, Order = -1;
         protected bool Has_Once = false;
@@ -960,21 +961,24 @@ namespace BO.Content.another.Magic.Magic_System
             Order = (int)Projectile.ai[0];
             //Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index = Projectile.whoAmI;
         }
-        //用于当第一次在其他客户端第一次生成时执行一次，多人同步专用
+        //用于当第一次在其他客户端第一次生成时执行一次，多人同步专用,强制进行一次同步
         public void Only_Once_On_Others()
         {
             if (Has_Once == false && Main.myPlayer != Projectile.owner && Main.netMode != NetmodeID.Server)  
             {
                 Order = (int)Projectile.ai[0];
                 Has_Once = true;
+                Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Projectile_Index = Projectile.whoAmI;
+                Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Magic_Barrier_Crystal_Type = Projectile.type;
+                Set(Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Crystal_Num(), Main.player[Projectile.owner].GetModPlayer<Magic_Slot_Sets>().Magic_Slot.Magic_Slots[Order].Active_Power);
                 Only_Once_On_Others_Content();
             }
         }
-        public void Set(int Crystal_num_S, int Active_Power_S)
+        public void Set(int Crystal_num_S, int Active_Power_S, bool IsNew = false)
         {
             Crystal_num = Crystal_num_S;
             Active_Power = Active_Power_S;
-            if (Main.netMode == NetmodeID.MultiplayerClient && Projectile.owner == Main.myPlayer) 
+            if (Main.netMode == NetmodeID.MultiplayerClient && Projectile.owner == Main.myPlayer && IsNew == false)  
             {
                 ModPacket Crystal_State_Sync_Packet = Mod.GetPacket();
                 Crystal_State_Sync_Packet.Write("Crystal_State_Sync_MCToS");
